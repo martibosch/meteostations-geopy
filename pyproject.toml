@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meteostations-geopy"
+version = "0.1.0"
+description = "Pythonic interface to access data from meteorological stations"
+readme = "README.md"
+authors = [
+    { name = "Martí Bosch", email = "marti.bosch@epfl.ch" },
+]
+license = { text = "GPL-3.0" }
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "better-abc",
+    "geopandas>=0.8.0",
+    "matplotlib",
+    "requests",
+]
+
+[project.urls]
+Repository = "https://github.com/martibosch/meteostations-geopy"
+
+[project.optional-dependencies]
+ox = ["osmnx"]
+cx = ["contextily"]
+test = ["black", "coverage[toml]", "pytest", "pytest-cov", "requests-mock", "ruff"]
+dev = ["build", "commitizen", "pre-commit", "pip", "toml", "tox", "twine"]
+doc = ["myst-parser", "nbsphinx", "sphinx"]
+
+[tool.setuptools.packages.find]
+include = ["meteostations", "meteostations.*"]
+
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88
+select = ["D", "E", "F", "I"]
+
+[tool.ruff.isort]
+known-first-party = ["meteostations"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["E402"]
+"tests/test_meteostations.py" = ["D"]
+
+[tool.coverage.run]
+source = ["meteostations"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if self.debug:",
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "except ModuleNotFoundError",
+    "except ImportError",
+]
+ignore_errors = true
+omit = ["tests/*", "docs/conf.py"]

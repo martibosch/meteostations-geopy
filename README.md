@@ -17,4 +17,6 @@ pip install meteostations-geopy
 
 ## Acknowledgements
 
+- Many utils such as the requests cache mechanism or the logging system are based on code from [gboeing/osmnx](https://github.com/gboeing/osmnx).
 - This package was created with the [martibosch/cookiecutter-geopy-package](https://github.com/martibosch/cookiecutter-geopy-package) project template.
+- With the support of the École Polytechnique Fédérale de Lausanne (EPFL).

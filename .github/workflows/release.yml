@@ -30,7 +30,7 @@ jobs:
           unreleased: true
           addSections: '{"documentation":{"prefix":"**Documentation:**","labels":["documentation"]}}'
           sinceTag: v0.1.0
-          output: CHANGELOG.md
+          output: RELEASE-CHANGELOG.md
 
       - uses: actions/setup-python@v2
         with:
@@ -55,7 +55,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          body_path: ./CHANGELOG.md
+          body_path: ./RELEASE-CHANGELOG.md
           files: dist/*.whl
           draft: false
           prerelease: false

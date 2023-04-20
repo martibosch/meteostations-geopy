@@ -37,6 +37,9 @@ jobs:
         env:
           CONDA_EXE: mamba
 
+      - name: upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+
       - name: list files
         run: ls -l .
 

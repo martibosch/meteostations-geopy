@@ -10,7 +10,7 @@ from meteostations.mixins.stations import AllStationsEndpointMixin
 
 # API endpoints
 BASE_URL = "http://datapoint.metoffice.gov.uk/public/data"
-STATIONS_ENDPOINT = f"{BASE_URL}/val/wxfcs/all/json/sitelist"
+STATIONS_ENDPOINT = f"{BASE_URL}/val/wxobs/all/json/sitelist"
 
 
 class MetOfficeClient(

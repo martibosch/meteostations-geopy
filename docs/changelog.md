@@ -1,2 +1,2 @@
-```{include} ../HISTORY.md
+```{include} ../CHANGELOG.md
 ```

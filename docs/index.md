@@ -7,7 +7,7 @@ maxdepth: 1
 usage
 api
 contributing
-history
+changelog
 ```
 
 ```{include} ../README.md

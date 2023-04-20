@@ -10,13 +10,28 @@ import pandas as pd
 import requests_mock
 from pandas.api.types import is_numeric_dtype
 
-from meteostations import utils
+from meteostations import settings, utils
 from meteostations.clients import (
     AemetClient,
     AgrometeoClient,
     MeteocatClient,
     MetOfficeClient,
 )
+
+
+def override_settings(module, **kwargs):
+    class OverrideSettings:
+        def __enter__(self):
+            self.old_values = {}
+            for key, value in kwargs.items():
+                self.old_values[key] = getattr(module, key)
+                setattr(module, key, value)
+
+        def __exit__(self, type, value, traceback):
+            for key, value in self.old_values.items():
+                setattr(module, key, value)
+
+    return OverrideSettings()
 
 
 def test_utils():
@@ -26,14 +41,22 @@ def test_utils():
     assert is_numeric_dtype(dd_ser)
 
     # logger
-    utils.log("test a fake default message")
-    utils.log("test a fake debug", level=lg.DEBUG)
-    utils.log("test a fake info", level=lg.INFO)
-    utils.log("test a fake warning", level=lg.WARNING)
-    utils.log("test a fake error", level=lg.ERROR)
+    def test_logging():
+        utils.log("test a fake default message")
+        utils.log("test a fake debug", level=lg.DEBUG)
+        utils.log("test a fake info", level=lg.INFO)
+        utils.log("test a fake warning", level=lg.WARNING)
+        utils.log("test a fake error", level=lg.ERROR)
+
+    test_logging()
+    with override_settings(settings, LOG_CONSOLE=True):
+        test_logging()
+    with override_settings(settings, LOG_FILE=True):
+        test_logging()
 
     # timestamps
     utils.ts(style="date")
+    utils.ts(style="datetime")
     utils.ts(style="time")
 
 

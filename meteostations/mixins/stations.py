@@ -1,15 +1,15 @@
 """Stations mixins."""
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import geopandas as gpd
 import pandas as pd
+from better_abc import abstract_attribute
 
 
 class StationsEndpointMixin(ABC):
     """Stations endpoint mixin."""
 
-    @property
-    @abstractmethod
+    @abstract_attribute
     def _stations_endpoint(self):
         pass
 
@@ -27,11 +27,6 @@ class StationsEndpointMixin(ABC):
 
 class AllStationsEndpointMixin(StationsEndpointMixin):
     """Mixin for APIs with an endpoint that returns all stations."""
-
-    @property
-    @abstractmethod
-    def _stations_endpoint(self):
-        pass
 
     def _get_stations_gdf(self) -> gpd.GeoDataFrame:
         """Get a GeoDataFrame featuring the stations data for the given region.

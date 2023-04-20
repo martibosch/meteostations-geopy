@@ -157,12 +157,24 @@ class AgrometeoClientTest(BaseClientTest, unittest.TestCase):
     client_cls = AgrometeoClient
     region = "Pully, Switzerland"
 
+    def test_variables(self):
+        variables_df = self.client.variables_df
+        assert len(variables_df) >= 1
+
 
 class MeteocatClientTest(APIKeyHeaderClientTest, unittest.TestCase):
     client_cls = MeteocatClient
     region = "Barcelona"
     api_key = "fake_key"
     stations_response_file = "tests/data/stations/meteocat.json"
+    variables_response_file = "tests/data/variables/meteocat.json"
+
+    def test_variables(self):
+        with requests_mock.Mocker() as m:
+            with open(self.variables_response_file) as f:
+                m.get(self.client._variables_endpoint, json=json.load(f))
+            variables_df = self.client.variables_df
+        assert len(variables_df) >= 1
 
 
 class MetOfficeClientTest(APIKeyParamClientTest, unittest.TestCase):

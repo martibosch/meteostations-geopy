@@ -1,0 +1,11 @@
+name: python3  # name python3 is to work with mybinder
+channels:
+  - conda-forge
+dependencies:
+  - geopandas
+  - osmnx
+  - pip
+  - pre-commit
+  - python=3.10
+  - pip:
+    - -e .

@@ -11,9 +11,25 @@ Pythonic interface to access data from meteorological stations
 
 ## Installation
 
+Although meteostations-geopy is not available in PyPI and conda-forge yet (hopefully will be soon), it can be installed using conda/mamba and pip as follows:
+
 ```bash
-pip install meteostations-geopy
+# install GDAL-based requirements
+conda install -c conda-forge contextily geopandas osmnx
+# install meteostations-geopy from GitHub
+pip install https://github.com/martibosch/meteostations-geopy/archive/main.zip
 ```
+
+## Usage
+
+## See also
+
+This library intends to provide a unified way to access data from meteorological stations from multiple providers. The following libraries provide access to data from a specific provider:
+
+- [martibosch/agrometeo-geopy](https://github.com/martibosch/agrometeo-geopy)
+- [martibosch/netatmo-geopy](https://github.com/martibosch/netatmo-geopy)
+
+Eventually these packages will be fully integrated into meteostations-geopy.
 
 ## Acknowledgements
 

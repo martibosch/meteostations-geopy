@@ -4,7 +4,7 @@ hidden:
 maxdepth: 1
 ---
 
-usage
+user-guide
 api
 contributing
 changelog

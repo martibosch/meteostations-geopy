@@ -133,6 +133,8 @@ class MeteocatClient(
         )
         # set the index name
         ts_df.index.name = settings.TIME_NAME
+        # convert the index from string to datetime
+        ts_df.index = pd.to_datetime(ts_df.index)
         # return the sorted data frame
         return ts_df.sort_index()
 

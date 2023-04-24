@@ -14,6 +14,9 @@ extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "myst_parser", "nbsph
 autodoc_typehints = "description"
 html_theme = "default"
 
+# https://myst-parser.readthedocs.io/en/stable/syntax/optional.html#auto-generated-header-anchors
+myst_heading_anchors = 3
+
 # add module to path
 sys.path.insert(0, os.path.abspath(".."))
 

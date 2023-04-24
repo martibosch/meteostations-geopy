@@ -143,7 +143,7 @@ ts_df.resample("H").mean().plot()
 
 ![Agrometeo time series plot](https://github.com/martibosch/meteostations-geopy/raw/main/docs/figures/agrometeo-ts.png)
 
-See [the user guide](https://meteostations-geopy.readthedocs.io/en/latest/user-guide) for more details.
+See [the user guide](https://meteostations-geopy.readthedocs.io/en/latest/user-guide.html) for more details.
 
 ## See also
 

@@ -55,6 +55,11 @@ known-first-party = ["meteostations"]
 "**/__init__.py" = ["F401"]
 "tests/test_meteostations.py" = ["D"]
 
+[tool.nbqa.addopts]
+ruff = [
+    "--ignore=D,I"
+]
+
 [tool.coverage.run]
 source = ["meteostations"]
 

@@ -2,6 +2,7 @@
 import datetime
 from typing import Any, Mapping, Union
 
+import geopandas as gpd
 import pandas as pd
 
 from meteostations import settings
@@ -223,3 +224,56 @@ class AgrometeoClient(
         ts_df = ts_df.apply(pd.to_numeric, axis=1)
 
         return ts_df.sort_index()
+
+    def get_ts_gdf(
+        self,
+        variable,
+        start_date,
+        end_date,
+        *,
+        scale=None,
+        measurement=None,
+    ):
+        """Get time series geo-data frame.
+
+        Parameters
+        ----------
+        variable : str or int
+            Target variable, which can be either an agrometeo variable code (integer or
+            string), an essential climate variable (ECV) following the
+            meteostations-geopy nomenclature (string), or an agrometeo variable name
+            (string).
+        start_date, end_date : str or datetime
+            String in the "YYYY-MM-DD" format or datetime instance, respectively
+            representing the start and end of the  requested data period.
+        scale : None or {"hour", "day", "month", "year"}, default None
+            Temporal scale of the measurements. The default value of None returns the
+            finest scale, i.e., 10 minutes.
+        measurement : {"min", "avg", "max"}, default "avg"
+            Whether the measurement values correspond to the minimum, average or maximum
+            value for the required temporal scale. Ignored if `scale` is None.
+
+        Returns
+        -------
+        ts_gdf : gpd.GeoDataFrame
+            Geo-data frame with a time series of meaurements (columns) at each station
+            (rows), with an additional geometry column with the stations' locations.
+        """
+        ts_gdf = gpd.GeoDataFrame(
+            self.get_ts_df(
+                variable,
+                start_date,
+                end_date,
+                scale=scale,
+                measurement=measurement,
+            ).T
+        )
+        # get the geometry from stations_gdf
+        ts_gdf["geometry"] = self.stations_gdf.set_index(ts_gdf.index.name).loc[
+            ts_gdf.index
+        ]["geometry"]
+        # sort the timestamp columns
+        ts_columns = ts_gdf.columns.drop("geometry")
+        ts_gdf = ts_gdf[sorted(ts_columns) + ["geometry"]]
+
+        return ts_gdf

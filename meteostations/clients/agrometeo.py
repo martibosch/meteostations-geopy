@@ -8,9 +8,8 @@ import pandas as pd
 
 from meteostations import settings
 from meteostations.base import BaseClient
+from meteostations.mixins import AllStationsEndpointMixin, VariablesEndpointMixin
 from meteostations.mixins.region import RegionMixin, RegionType
-from meteostations.mixins.stations import AllStationsEndpointMixin
-from meteostations.mixins.variables import VariablesEndpointMixin
 
 # API endpoints
 BASE_URL = "https://agrometeo.ch/backend/api"

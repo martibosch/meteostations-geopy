@@ -6,10 +6,12 @@ import pandas as pd
 
 from meteostations import settings, utils
 from meteostations.base import BaseClient
-from meteostations.mixins.auth import APIKeyParamMixin
+from meteostations.mixins import (
+    AllStationsEndpointMixin,
+    APIKeyParamMixin,
+    VariablesEndpointMixin,
+)
 from meteostations.mixins.region import RegionMixin, RegionType
-from meteostations.mixins.stations import AllStationsEndpointMixin
-from meteostations.mixins.variables import VariablesEndpointMixin
 
 # API endpoints
 BASE_URL = "https://opendata.aemet.es/opendata/api"

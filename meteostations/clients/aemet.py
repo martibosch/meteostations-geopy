@@ -5,13 +5,12 @@ from typing import Mapping, Union
 import pandas as pd
 
 from meteostations import settings, utils
-from meteostations.base import BaseClient
+from meteostations.base import BaseClient, RegionType
 from meteostations.mixins import (
     AllStationsEndpointMixin,
     APIKeyParamMixin,
     VariablesEndpointMixin,
 )
-from meteostations.mixins.region import RegionMixin, RegionType
 
 # API endpoints
 BASE_URL = "https://opendata.aemet.es/opendata/api"
@@ -35,7 +34,6 @@ ECV_DICT = {
 
 class AemetClient(
     APIKeyParamMixin,
-    RegionMixin,
     AllStationsEndpointMixin,
     VariablesEndpointMixin,
     BaseClient,

@@ -7,9 +7,8 @@ import geopandas as gpd
 import pandas as pd
 
 from meteostations import settings
-from meteostations.base import BaseClient
+from meteostations.base import BaseClient, RegionType
 from meteostations.mixins import AllStationsEndpointMixin, VariablesEndpointMixin
-from meteostations.mixins.region import RegionMixin, RegionType
 
 # API endpoints
 BASE_URL = "https://agrometeo.ch/backend/api"
@@ -101,9 +100,7 @@ SCALE = "none"
 MEASUREMENT = "avg"
 
 
-class AgrometeoClient(
-    RegionMixin, AllStationsEndpointMixin, VariablesEndpointMixin, BaseClient
-):
+class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClient):
     """Agrometeo client."""
 
     _stations_endpoint = STATIONS_ENDPOINT

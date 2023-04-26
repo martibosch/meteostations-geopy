@@ -4,18 +4,15 @@ from typing import Mapping, Union
 
 import pandas as pd
 
-from meteostations.base import BaseClient
+from meteostations.base import BaseClient, RegionType
 from meteostations.mixins import AllStationsEndpointMixin, APIKeyParamMixin
-from meteostations.mixins.region import RegionMixin, RegionType
 
 # API endpoints
 BASE_URL = "http://datapoint.metoffice.gov.uk/public/data"
 STATIONS_ENDPOINT = f"{BASE_URL}/val/wxobs/all/json/sitelist"
 
 
-class MetOfficeClient(
-    APIKeyParamMixin, RegionMixin, AllStationsEndpointMixin, BaseClient
-):
+class MetOfficeClient(APIKeyParamMixin, AllStationsEndpointMixin, BaseClient):
     """MetOffice client."""
 
     X_COL = "longitude"

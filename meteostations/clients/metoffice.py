@@ -4,9 +4,8 @@ from typing import Mapping, Union
 import pandas as pd
 
 from meteostations.base import BaseClient
-from meteostations.mixins.auth import APIKeyParamMixin
+from meteostations.mixins import AllStationsEndpointMixin, APIKeyParamMixin
 from meteostations.mixins.region import RegionMixin, RegionType
-from meteostations.mixins.stations import AllStationsEndpointMixin
 
 # API endpoints
 BASE_URL = "http://datapoint.metoffice.gov.uk/public/data"

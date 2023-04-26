@@ -1,13 +1,12 @@
 """Tests for Meteostations geopy."""
-import json
 import logging as lg
+import os
 import tempfile
 import unittest
 from os import path
 
 import osmnx as ox
 import pandas as pd
-import requests_mock
 from pandas.api.types import is_numeric_dtype
 
 from meteostations import settings, utils
@@ -17,6 +16,7 @@ from meteostations.clients import (
     MeteocatClient,
     MetOfficeClient,
 )
+from meteostations.mixins import AllStationsEndpointMixin, VariablesEndpointMixin
 
 
 def override_settings(module, **kwargs):
@@ -93,27 +93,26 @@ class BaseClientTest:
             self.assertIsNotNone(getattr(self.client, attr))
 
     def test_stations(self):
-        stations_gdf = self.client.stations_gdf
-        assert len(stations_gdf) >= 1
+        if isinstance(self.client, AllStationsEndpointMixin):
+            stations_gdf = self.client.stations_gdf
+            assert len(stations_gdf) >= 1
+
+    def test_variables(self):
+        if isinstance(self.client, VariablesEndpointMixin):
+            variables_df = self.client.variables_df
+            assert len(variables_df) >= 1
 
 
 class APIKeyClientTest(BaseClientTest):
     stations_response_file = None
 
     def setUp(self):
-        self.client = self.client_cls(region=self.region, api_key="fake_key")
+        self.client = self.client_cls(self.region, self.api_key)
 
     def test_attributes(self):
         super().test_attributes()
         self.assertTrue(hasattr(self.client, "_api_key"))
         self.assertIsNotNone(self.client._api_key)
-
-    def test_stations(self):
-        with requests_mock.Mocker() as m:
-            with open(self.stations_response_file) as f:
-                m.get(self.client._stations_endpoint, json=json.load(f))
-            stations_gdf = self.client.stations_gdf
-        assert len(stations_gdf) >= 1
 
 
 class APIKeyHeaderClientTest(APIKeyClientTest):
@@ -134,51 +133,49 @@ class APIKeyParamClientTest(APIKeyClientTest):
 
 class AemetClientTest(APIKeyParamClientTest, unittest.TestCase):
     client_cls = AemetClient
-    region = "Barcelona"
-    api_key = "fake_key"
-    stations_interim_file = "tests/data/stations/aemet-interim.json"
-    stations_response_file = "tests/data/stations/aemet.json"
-
-    def test_stations(self):
-        with requests_mock.Mocker() as m:
-            with open(self.stations_interim_file) as f:
-                interim_response = json.load(f)
-            m.get(self.client._stations_endpoint, json=interim_response)
-            # TODO: find a way to mock requests for pandas URL reader (uses urlopen)
-            # interim_url = interim_response["datos"]
-            # with open(self.stations_response_file) as f:
-            #     stations_response = json.load(f)
-            # m.get(interim_url, json=stations_response)
-            # stations_gdf = self.client.stations_gdf
-            # self.assertTrue(len(stations_gdf) >= 1)
+    region = "Catalunya"
+    api_key = os.environ["AEMET_API_KEY"]
 
 
 class AgrometeoClientTest(BaseClientTest, unittest.TestCase):
     client_cls = AgrometeoClient
     region = "Pully, Switzerland"
+    start_date = "2022-03-22"
+    end_date = "2022-03-23"
+    variables = ["temperature", "Precipitation", "1", 1]
 
-    def test_variables(self):
-        variables_df = self.client.variables_df
-        assert len(variables_df) >= 1
+    def test_data(self):
+        num_stations = len(self.client.stations_gdf)
+        # test that variable can be an ECV following the meteostations-geopy
+        # nomenclature, a variable name following the agrometeo nomenclature and a
+        # variable code (as str or int) following the agrometeo nomenclature
+        for variable in self.variables:
+            ts_df = self.client.get_ts_df(variable, self.start_date, self.end_date)
+            assert len(ts_df.columns) == num_stations
+            ts_gdf = self.client.get_ts_gdf(variable, self.start_date, self.end_date)
+            assert len(ts_gdf) == num_stations
+            assert ts_gdf["geometry"].isna().sum() == 0
 
 
 class MeteocatClientTest(APIKeyHeaderClientTest, unittest.TestCase):
     client_cls = MeteocatClient
-    region = "Barcelona"
-    api_key = "fake_key"
-    stations_response_file = "tests/data/stations/meteocat.json"
-    variables_response_file = "tests/data/variables/meteocat.json"
+    region = "Conca de Barberà"
+    api_key = os.environ["METEOCAT_API_KEY"]
+    start_date = "2022-03-22"
+    end_date = "2022-03-23"
+    variables = ["temperature", "Humitat relativa", "33", 33]
 
-    def test_variables(self):
-        with requests_mock.Mocker() as m:
-            with open(self.variables_response_file) as f:
-                m.get(self.client._variables_endpoint, json=json.load(f))
-            variables_df = self.client.variables_df
-        assert len(variables_df) >= 1
+    def test_data(self):
+        num_stations = len(self.client.stations_gdf)
+        for variable in self.variables:
+            ts_df = self.client.get_ts_df(variable, self.start_date, self.end_date)
+            assert len(ts_df.columns) == num_stations
+            ts_gdf = self.client.get_ts_gdf(variable, self.start_date, self.end_date)
+            assert len(ts_gdf) == num_stations
+            assert ts_gdf["geometry"].isna().sum() == 0
 
 
 class MetOfficeClientTest(APIKeyParamClientTest, unittest.TestCase):
     client_cls = MetOfficeClient
     region = "Edinburgh"
-    api_key = "fake_key"
-    stations_response_file = "tests/data/stations/metoffice.json"
+    api_key = os.environ["METOFFICE_API_KEY"]

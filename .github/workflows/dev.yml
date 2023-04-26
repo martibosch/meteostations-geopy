@@ -2,10 +2,7 @@ name: dev workflow
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches:
-      - "*"
+    branches: [main, develop]
 
 jobs:
   test:
@@ -31,6 +28,13 @@ jobs:
 
       - name: install dependencies
         run: pip install tox tox-gh-actions
+
+      - name: get API keys from secrets
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: ".keys.env"
+          fileDir: "."
+          encodedString: ${{ secrets.API_KEYS }}
 
       - name: test with tox
         run: tox

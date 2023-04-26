@@ -5,13 +5,12 @@ from typing import Mapping, Union
 import pandas as pd
 
 from meteostations import settings
-from meteostations.base import BaseClient
+from meteostations.base import BaseClient, RegionType
 from meteostations.mixins import (
     AllStationsEndpointMixin,
     APIKeyHeaderMixin,
     VariablesEndpointMixin,
 )
-from meteostations.mixins.region import RegionMixin, RegionType
 
 # API endpoints
 BASE_URL = "https://api.meteo.cat/xema/v1"
@@ -36,7 +35,6 @@ ECV_DICT = {
 
 class MeteocatClient(
     APIKeyHeaderMixin,
-    RegionMixin,
     AllStationsEndpointMixin,
     VariablesEndpointMixin,
     BaseClient,

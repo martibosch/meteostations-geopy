@@ -48,6 +48,7 @@ class AemetClient(
     _variables_name_col = VARIABLES_NAME_COL
     _variables_code_col = VARIABLES_CODE_COL
     _ecv_dict = ECV_DICT
+    _data_endpoint = DATA_ENDPOINT
     _api_key_param_name = "api_key"
     request_headers = {"cache-control": "no-cache"}
 
@@ -145,7 +146,7 @@ class AemetClient(
             Data frame with a time series of meaurements (rows) at each station
             (columns).
         """
-        response_json = self._get_json_from_url(DATA_ENDPOINT)
+        response_json = self._get_json_from_url(self._data_endpoint)
         # response_json returns a dict with urls, where the one under the "datos" key
         # contains the JSON data
         long_df = pd.read_json(response_json["datos"], encoding="latin1")

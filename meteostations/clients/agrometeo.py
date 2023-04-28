@@ -164,7 +164,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         scale : None or {"hour", "day", "month", "year"}, default None
             Temporal scale of the measurements. The default value of None returns the
             finest scale, i.e., 10 minutes.
-        measurement : {"min", "avg", "max"}, default "avg"
+        measurement : None or {"min", "avg", "max"}, default None
             Whether the measurement values correspond to the minimum, average or maximum
             value for the required temporal scale. Ignored if `scale` is None.
 
@@ -225,12 +225,12 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
 
     def get_ts_gdf(
         self,
-        variable,
-        start_date,
-        end_date,
+        variable: Union[str, int],
+        start_date: Union[str, datetime.date],
+        end_date: Union[str, datetime.date],
         *,
-        scale=None,
-        measurement=None,
+        scale: Union[str, None] = None,
+        measurement: Union[str, None] = None,
     ):
         """Get time series geo-data frame.
 
@@ -247,7 +247,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         scale : None or {"hour", "day", "month", "year"}, default None
             Temporal scale of the measurements. The default value of None returns the
             finest scale, i.e., 10 minutes.
-        measurement : {"min", "avg", "max"}, default "avg"
+        measurement : None or {"min", "avg", "max"}, default None
             Whether the measurement values correspond to the minimum, average or maximum
             value for the required temporal scale. Ignored if `scale` is None.
 

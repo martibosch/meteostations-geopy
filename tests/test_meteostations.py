@@ -135,6 +135,22 @@ class AemetClientTest(APIKeyParamClientTest, unittest.TestCase):
     client_cls = AemetClient
     region = "Catalunya"
     api_key = os.environ["AEMET_API_KEY"]
+    variables = ["temperature", "prec", "11", 11]
+
+    def test_data(self):
+        len(self.client.stations_gdf)
+        # test that variable can be an ECV following the meteostations-geopy
+        # nomenclature, a variable name following the agrometeo nomenclature and a
+        # variable code (as str or int) following the agrometeo nomenclature
+        for variable in self.variables:
+            self.client.get_ts_df(variable)
+            # ACHTUNG: for some reason (internal to Aemet's API), we get more stations
+            # from the stations endpoint than from the data endpoint, so the assertions
+            # below would fail.
+            # assert len(ts_df.columns) == num_stations
+            ts_gdf = self.client.get_ts_gdf(variable)
+            # assert len(ts_gdf) == num_stations
+            assert ts_gdf["geometry"].isna().sum() == 0
 
 
 class AgrometeoClientTest(BaseClientTest, unittest.TestCase):

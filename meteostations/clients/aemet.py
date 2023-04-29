@@ -6,7 +6,7 @@ import geopandas as gpd
 import pandas as pd
 
 from meteostations import settings, utils
-from meteostations.base import BaseClient, RegionType
+from meteostations.clients.base import BaseClient, RegionType
 from meteostations.mixins import (
     AllStationsEndpointMixin,
     APIKeyParamMixin,

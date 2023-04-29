@@ -186,12 +186,6 @@ class MeteocatClient(
         start_date, end_date : str or datetime
             String in the "YYYY-MM-DD" format or datetime instance, respectively
             representing the start and end of the  requested data period.
-        scale : None or {"hour", "day", "month", "year"}, default None
-            Temporal scale of the measurements. The default value of None returns the
-            finest scale, i.e., 10 minutes.
-        measurement : {"min", "avg", "max"}, default "avg"
-            Whether the measurement values correspond to the minimum, average or maximum
-            value for the required temporal scale. Ignored if `scale` is None.
 
         Returns
         -------

@@ -3,7 +3,7 @@ from typing import Mapping, Union
 
 import pandas as pd
 
-from meteostations.base import BaseClient, RegionType
+from meteostations.clients.base import BaseClient, RegionType
 from meteostations.mixins import AllStationsEndpointMixin, APIKeyParamMixin
 
 # API endpoints

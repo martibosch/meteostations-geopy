@@ -107,6 +107,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
     _variables_endpoint = VARIABLES_ENDPOINT
     _variables_code_col = VARIABLES_CODE_COL
     _variables_name_col = VARIABLES_NAME_COL
+    _data_endpoint = DATA_ENDPOINT
     _ecv_dict = ECV_DICT
 
     def __init__(
@@ -191,7 +192,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         #     stations_id_col = self._stations_id_col
 
         _stations_ids = self.stations_gdf[STATIONS_API_ID_COL].astype(str)
-        request_url = f"{DATA_ENDPOINT}?" + "&".join(
+        request_url = f"{self._data_endpoint}?" + "&".join(
             [
                 f"from={start_date}",
                 f"to={end_date}",

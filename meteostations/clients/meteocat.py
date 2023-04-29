@@ -93,13 +93,14 @@ class MeteocatClient(
             Data frame with a time series of meaurements (rows) at each station
             (columns).
         """
-        variable_code = self._process_variable_arg(variable)
+        self._process_variable_arg(variable)
         # process date arg
         if isinstance(date, str):
             date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
         # request url
         request_url = (
-            f"{DATA_ENDPOINT}/{variable_code}/{date.year}/{date.month:02}/{date.day:02}"
+            f"{self._data_endpoint}"
+            "/{variable_code}/{date.year}/{date.month:02}/{date.day:02}"
         )
         response_json = self._get_json_from_url(request_url)
         # process response

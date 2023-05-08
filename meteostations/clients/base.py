@@ -258,7 +258,16 @@ class BaseClient(ABC):
             JSON-encoded response content.
 
         """
-        cached_response_json = utils._retrieve_from_cache(url)
+        # use the Python requests library to prepare the url here so that the cache
+        # mechanism takes into account the params
+        # TODO: DRY together with `self._perform_request`
+        # - the `params` arg is processed here and in `self._perform_request`
+        # - the url is prepared here and in `self._perform_request`
+        _params = self.request_params.copy()
+        if params is not None:
+            _params.update(params)
+        prepared_url = requests.Request("GET", url, params=_params).prepare().url
+        cached_response_json = utils._retrieve_from_cache(prepared_url)
 
         if cached_response_json is not None:
             # found response in the cache, return it instead of calling server
@@ -272,7 +281,7 @@ class BaseClient(ABC):
                 pause=pause,
                 error_pause=error_pause,
             )
-            utils._save_to_cache(url, response_json, sc)
+            utils._save_to_cache(prepared_url, response_json, sc)
             return response_json
 
     def _perform_request(

@@ -93,7 +93,7 @@ ECV_DICT = {
     "temperature": "Temperature 2m above ground",
     "water_vapour": "Relative humidity",
 }
-
+TIME_COL = "date"
 API_DT_FMT = "%Y-%m-%d"
 SCALE = "none"
 MEASUREMENT = "avg"
@@ -109,6 +109,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
     _variables_name_col = VARIABLES_NAME_COL
     _data_endpoint = DATA_ENDPOINT
     _ecv_dict = ECV_DICT
+    _time_col = TIME_COL
 
     def __init__(
         self,
@@ -205,7 +206,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         response_json = self._get_json_from_url(request_url)
 
         # parse the response as a data frame
-        ts_df = pd.json_normalize(response_json["data"]).set_index("date")
+        ts_df = pd.json_normalize(response_json["data"]).set_index(self._time_col)
         ts_df.index = pd.to_datetime(ts_df.index)
         ts_df.index.name = settings.TIME_NAME
         # ts_df.columns = self.stations_gdf[STATIONS_ID_COL]

@@ -32,6 +32,7 @@ ECV_DICT = {
     "temperature": "ta",
     "water_vapour": "hr",
 }
+TIME_COL = "fint"
 
 
 class AemetClient(
@@ -52,6 +53,7 @@ class AemetClient(
     _variables_code_col = VARIABLES_CODE_COL
     _ecv_dict = ECV_DICT
     _data_endpoint = DATA_ENDPOINT
+    _time_col = TIME_COL
     _api_key_param_name = "api_key"
     request_headers = {"cache-control": "no-cache"}
 
@@ -160,15 +162,13 @@ class AemetClient(
         long_df = long_df[
             long_df[self._stations_id_col].isin(self.stations_gdf["indicativo"])
         ]
-        # TODO: time_col as class-level constant?
-        time_col = "fint"
         # process the variable arg
         # TODO: in this case, there is no variable name, only variable code
         variable_code = self._process_variable_arg(variable)
         # convert to wide_df
         # TODO: allow returning long_df?
         ts_df = long_df.pivot_table(
-            index=time_col, columns=self._stations_id_col, values=variable_code
+            index=self._time_col, columns=self._stations_id_col, values=variable_code
         )
         # set the index name
         ts_df.index.name = settings.TIME_NAME

@@ -33,6 +33,7 @@ ECV_DICT = {
     "temperature": "Temperatura",
     "water_vapour": "Humitat relativa",
 }
+TIME_COL = "data"
 
 
 class MeteocatClient(
@@ -53,6 +54,7 @@ class MeteocatClient(
     _variables_code_col = VARIABLES_CODE_COL
     _ecv_dict = ECV_DICT
     _data_endpoint = DATA_ENDPOINT
+    _time_col = TIME_COL
 
     def __init__(
         self, region: RegionType, api_key: str, sjoin_kws: Union[Mapping, None] = None
@@ -128,12 +130,11 @@ class MeteocatClient(
             )
             .values
         )
-        # TODO: time_col as class-level constant?
-        time_col = "data"
+        # TODO: values_col as class-level constant?
         values_col = "valor"
         # convert to a wide data frame
         ts_df = long_df.pivot_table(
-            index=time_col, columns=self._stations_id_col, values=values_col
+            index=self._time_col, columns=self._stations_id_col, values=values_col
         )
         # set the index name
         ts_df.index.name = settings.TIME_NAME

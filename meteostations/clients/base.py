@@ -173,15 +173,6 @@ class BaseClient(ABC):
 
         return region.to_crs(self.CRS)
 
-    @property
-    def stations_gdf(self) -> gpd.GeoDataFrame:
-        """Geo-data frame with stations data."""
-        try:
-            return self._stations_gdf
-        except AttributeError:
-            self._stations_gdf = self._get_stations_gdf()
-            return self._stations_gdf
-
     # @abc.abstractmethod
     # def get_ts_df(self, *args, **kwargs):
     #     """

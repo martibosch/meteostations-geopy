@@ -26,6 +26,15 @@ class StationsEndpointMixin(ABC):
         response_json = self._get_json_from_url(self._stations_endpoint)
         return self._stations_df_from_json(response_json)
 
+    @property
+    def stations_gdf(self) -> gpd.GeoDataFrame:
+        """Geo-data frame with stations data."""
+        try:
+            return self._stations_gdf
+        except AttributeError:
+            self._stations_gdf = self._get_stations_gdf()
+            return self._stations_gdf
+
 
 class AllStationsEndpointMixin(StationsEndpointMixin):
     """Mixin for APIs with an endpoint that returns all stations."""

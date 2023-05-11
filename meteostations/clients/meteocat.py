@@ -1,4 +1,4 @@
-"""MetOffice client."""
+"""Meteocat client."""
 import datetime
 from typing import Mapping, Union
 

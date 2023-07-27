@@ -1,4 +1,4 @@
-name: python3  # name python3 is to work with mybinder
+name: meteostations
 channels:
   - conda-forge
 dependencies:

@@ -97,14 +97,14 @@ class MeteocatClient(
             (columns).
 
         """
-        self._process_variable_arg(variable)
+        variable_code = self._process_variable_arg(variable)
         # process date arg
         if isinstance(date, str):
             date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
         # request url
         request_url = (
             f"{self._data_endpoint}"
-            "/{variable_code}/{date.year}/{date.month:02}/{date.day:02}"
+            f"/{variable_code}/{date.year}/{date.month:02}/{date.day:02}"
         )
         response_json = self._get_json_from_url(request_url)
         # process response

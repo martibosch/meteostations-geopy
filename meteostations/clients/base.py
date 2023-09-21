@@ -131,7 +131,7 @@ class BaseClient(ABC):
 
         if not isinstance(region, gpd.GeoDataFrame):
             # naive geometries
-            if (
+            if not isinstance(region, gpd.GeoSeries) and (
                 hasattr(region, "__iter__")
                 and not isinstance(region, str)
                 or isinstance(region, BaseGeometry)

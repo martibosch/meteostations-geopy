@@ -35,15 +35,12 @@ Repository = "https://github.com/martibosch/meteostations-geopy"
 [project.optional-dependencies]
 ox = ["osmnx"]
 cx = ["contextily"]
-test = ["black", "coverage[toml]", "pytest", "pytest-cov", "python-dotenv", "ruff"]
+test = ["coverage[toml]", "pytest", "pytest-cov", "python-dotenv", "ruff"]
 dev = ["build", "commitizen", "pre-commit", "pip", "toml", "tox", "twine"]
 doc = ["myst-parser", "sphinx"]
 
 [tool.setuptools.packages.find]
 include = ["meteostations", "meteostations.*"]
-
-[tool.black]
-line-length = 88
 
 [tool.ruff]
 line-length = 88

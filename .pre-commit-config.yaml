@@ -53,11 +53,11 @@ repos:
       - id: black
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.260
+    rev: v0.1.14
     hooks:
       - id: ruff
         args: ["--fix"]
-      - id: ruff
+      - id: ruff-format
 
   - repo: https://github.com/kynan/nbstripout
     rev: 0.6.1

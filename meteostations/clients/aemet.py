@@ -3,6 +3,7 @@ from typing import Mapping, Union
 
 import geopandas as gpd
 import pandas as pd
+import pyproj
 
 from meteostations import settings, utils
 from meteostations.clients.base import BaseClient, RegionType
@@ -45,7 +46,7 @@ class AemetClient(
 
     X_COL = "longitud"
     Y_COL = "latitud"
-    CRS = "epsg:4326"
+    CRS = pyproj.CRS("epsg:4326")
     _stations_endpoint = STATIONS_ENDPOINT
     _stations_id_col = STATIONS_ID_COL
     _variables_endpoint = VARIABLES_ENDPOINT

@@ -5,6 +5,7 @@ from typing import Mapping, Union
 
 import geopandas as gpd
 import pandas as pd
+import pyproj
 
 from meteostations import settings
 from meteostations.clients.base import BaseClient, RegionType
@@ -46,7 +47,7 @@ class MeteocatClient(
 
     X_COL = "coordenades.longitud"
     Y_COL = "coordenades.latitud"
-    CRS = "epsg:4326"
+    CRS = pyproj.CRS("epsg:4326")
     _stations_endpoint = STATIONS_ENDPOINT
     _stations_id_col = STATIONS_ID_COL
     _variables_endpoint = VARIABLES_ENDPOINT

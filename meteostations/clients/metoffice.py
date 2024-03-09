@@ -4,6 +4,7 @@ import datetime
 from typing import Mapping, Union
 
 import pandas as pd
+import pyproj
 
 from meteostations.clients.base import BaseClient, RegionType
 from meteostations.mixins import (
@@ -42,7 +43,7 @@ class MetOfficeClient(
 
     X_COL = "longitude"
     Y_COL = "latitude"
-    CRS = "epsg:4326"
+    CRS = pyproj.CRS("epsg:4326")
     _stations_endpoint = STATIONS_ENDPOINT
     _stations_id_col = STATIONS_ID_COL
     _variables_endpoint = VARIABLES_ENDPOINT

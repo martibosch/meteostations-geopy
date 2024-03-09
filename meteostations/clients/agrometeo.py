@@ -5,6 +5,7 @@ from typing import Any, Mapping, Union
 
 import geopandas as gpd
 import pandas as pd
+import pyproj
 
 from meteostations import settings
 from meteostations.clients.base import BaseClient, RegionType
@@ -17,8 +18,8 @@ VARIABLES_ENDPOINT = f"{BASE_URL}/sensors"
 DATA_ENDPOINT = f"{BASE_URL}/meteo/data"
 
 # useful constants
-LONLAT_CRS = "epsg:4326"
-LV03_CRS = "epsg:21781"
+LONLAT_CRS = pyproj.CRS("epsg:4326")
+LV03_CRS = pyproj.CRS("epsg:21781")
 # ACHTUNG: for some reason, the API mixes up the longitude and latitude columns ONLY in
 # the CH1903/LV03 projection. This is why we need to swap the columns in the dict below.
 GEOM_COL_DICT = {LONLAT_CRS: ["long_dec", "lat_dec"], LV03_CRS: ["lat_ch", "long_ch"]}
@@ -120,10 +121,21 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         sjoin_kws: Union[Mapping, None] = None,
     ) -> None:
         """Initialize Agrometeo client."""
+        # ACHTUNG: CRS must be either EPSG:4326 or EPSG:21781
         # ACHTUNG: CRS must be set before region
-        self.CRS = crs or DEFAULT_CRS
+        if crs is not None:
+            crs = pyproj.CRS(crs)
+        else:
+            crs = DEFAULT_CRS
+        self.CRS = crs
         self._variables_name_col = variables_name_col or VARIABLES_NAME_COL
-        self.X_COL, self.Y_COL = GEOM_COL_DICT[self.CRS]
+        try:
+            self.X_COL, self.Y_COL = GEOM_COL_DICT[self.CRS]
+        except KeyError:
+            raise ValueError(
+                f"CRS must be among {list(GEOM_COL_DICT.keys())}, got {self.CRS}"
+            )
+
         self.region = region
         if sjoin_kws is None:
             sjoin_kws = {}

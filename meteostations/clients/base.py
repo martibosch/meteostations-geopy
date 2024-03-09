@@ -11,6 +11,7 @@ from typing import IO, Mapping, Sequence, Tuple, Union
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import pyproj
 import requests
 from better_abc import abstract_attribute
 from fiona.errors import DriverError
@@ -75,7 +76,7 @@ class BaseClient(ABC):
         pass
 
     @abstract_attribute
-    def CRS(self):  # pylint: disable=invalid-name
+    def CRS(self) -> pyproj.CRS:  # pylint: disable=invalid-name
         """CRS of the data source."""
         pass
 

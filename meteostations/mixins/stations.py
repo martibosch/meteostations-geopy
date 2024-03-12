@@ -24,6 +24,23 @@ class StationsEndpointMixin(ABC):
         response_json = self._get_json_from_url(self._stations_endpoint)
         return self._stations_df_from_json(response_json)
 
+    def _get_stations_gdf(self) -> gpd.GeoDataFrame:
+        """Get a GeoDataFrame featuring the stations data for the given region.
+
+        Returns
+        -------
+        stations_gdf : gpd.GeoDataFrame
+            The stations data for the given region as a GeoDataFrame.
+        """
+        stations_df = self._get_stations_df()
+        return gpd.GeoDataFrame(
+            stations_df,
+            geometry=gpd.points_from_xy(
+                stations_df[self.X_COL], stations_df[self.Y_COL]
+            ),
+            crs=self.CRS,
+        )
+
     @property
     def stations_gdf(self) -> gpd.GeoDataFrame:
         """Geo-data frame with stations data."""
@@ -35,7 +52,11 @@ class StationsEndpointMixin(ABC):
 
 
 class AllStationsEndpointMixin(StationsEndpointMixin):
-    """Mixin for APIs with an endpoint that returns all stations."""
+    """Mixin for APIs with an endpoint that returns all the stations.
+
+    In this case, a request gets all the stations, which are then spatially filtered
+    based on the `region` attribute.
+    """
 
     def _get_stations_gdf(self) -> gpd.GeoDataFrame:
         """Get a GeoDataFrame featuring the stations data for the given region.
@@ -45,15 +66,11 @@ class AllStationsEndpointMixin(StationsEndpointMixin):
         stations_gdf : gpd.GeoDataFrame
             The stations data for the given region as a GeoDataFrame.
         """
-        stations_df = self._get_stations_df()
-        stations_gdf = gpd.GeoDataFrame(
-            stations_df,
-            geometry=gpd.points_from_xy(
-                stations_df[self.X_COL], stations_df[self.Y_COL]
-            ),
-            crs=self.CRS,
-        )
+        # use the parent method to get the stations geo-data frame, which features all
+        # the stations
+        stations_gdf = super()._get_stations_gdf()
 
+        # filter the stations
         # TODO: do we need to copy the dict to avoid reference issues?
         _sjoin_kws = self.SJOIN_KWS.copy()
         # predicate = _sjoin_kws.pop("predicate", SJOIN_PREDICATE)

@@ -1,4 +1,5 @@
 """Base abstract classes for meteo station datasets."""
+
 import logging as lg
 import re
 import time
@@ -141,6 +142,7 @@ class BaseClient(ABC):
         -------
         response_json : dict
             JSON-encoded response content.
+
         """
         cached_response_json = utils._retrieve_from_cache(url)
 
@@ -197,6 +199,7 @@ class BaseClient(ABC):
             JSON-encoded response content.
         status_code : int
             Status code of the response.
+
         """
         # if this URL is not already in the cache, pause, then request it
         if pause is None:

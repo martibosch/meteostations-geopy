@@ -1,4 +1,5 @@
 """MetOffice client."""
+
 import datetime
 from typing import Mapping, Union
 
@@ -91,6 +92,7 @@ class MeteocatClient(
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
         variable_code = self._process_variable_arg(variable)
         # process date arg
@@ -162,6 +164,7 @@ class MeteocatClient(
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
         # return self._get_ts_df(variable, date)
         date_range = pd.date_range(start=start_date, end=end_date, freq="D")

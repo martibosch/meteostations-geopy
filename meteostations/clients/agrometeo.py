@@ -1,6 +1,7 @@
 """Agrometeo client."""
+
 import datetime
-from typing import Any, Mapping, Union
+from typing import Any, List, Mapping, Union
 
 import geopandas as gpd
 import pandas as pd
@@ -155,7 +156,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
 
     def get_ts_df(
         self,
-        variable: Union[str, int],
+        variables: Union[str, int, List[str], List[int]],
         start_date: Union[str, datetime.date],
         end_date: Union[str, datetime.date],
         *,
@@ -166,8 +167,8 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
 
         Parameters
         ----------
-        variable : str or int
-            Target variable, which can be either an agrometeo variable code (integer or
+        variables : str, int or list-like of str or int
+            Target variables, which can be either an agrometeo variable code (integer or
             string), an essential climate variable (ECV) following the
             meteostations-geopy nomenclature (string), or an agrometeo variable name
             (string).
@@ -186,8 +187,14 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
-        variable_code = self._process_variable_arg(variable)
+        # process variables
+        if not pd.api.types.is_list_like(variables):
+            variables = [variables]
+        variable_codes = [
+            self._process_variable_arg(variable) for variable in variables
+        ]
 
         # process date args
         if isinstance(start_date, datetime.date):
@@ -210,7 +217,13 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
                 f"from={start_date}",
                 f"to={end_date}",
                 f"scale={scale}",
-                f"sensors={variable_code}%3A{measurement}",
+                "sensors="
+                + "%2C".join(
+                    [
+                        f"{variable_code}%3A{measurement}"
+                        for variable_code in variable_codes
+                    ]
+                ),
                 f"stations={'%2C'.join(_stations_ids)}",
             ]
         )
@@ -227,9 +240,10 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         # as the desired station identifier (e.g., "id" or "name") we need to first get
         # the ids and then get (loc) the station data from the stations_gdf.
         ts_df.columns = self.stations_gdf.set_index(STATIONS_API_ID_COL).loc[
-            ts_df.columns.str.replace(f"_{variable_code}_{measurement}", "").astype(
-                self.stations_gdf[STATIONS_API_ID_COL].dtype
-            )
+            ts_df.columns.str.replace(
+                [f"_{variable_code}_{measurement}" for variable_code in variable_codes],
+                "",
+            ).astype(self.stations_gdf[STATIONS_API_ID_COL].dtype)
         ][self._stations_id_col]
         ts_df = ts_df.apply(pd.to_numeric, axis=1)
 
@@ -268,6 +282,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         ts_gdf : gpd.GeoDataFrame
             Geo-data frame with a time series of meaurements (columns) at each station
             (rows), with an additional geometry column with the stations' locations.
+
         """
         ts_gdf = gpd.GeoDataFrame(
             self.get_ts_df(

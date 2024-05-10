@@ -71,7 +71,7 @@ class AemetClient(
         self.region = region
         self._api_key = api_key
         if sjoin_kws is None:
-            sjoin_kws = {}
+            sjoin_kws = settings.SJOIN_KWS.copy()
         self.SJOIN_KWS = sjoin_kws
 
     def _stations_df_from_json(self, response_json: dict) -> pd.DataFrame:
@@ -198,6 +198,7 @@ class AemetClient(
         ts_gdf : gpd.GeoDataFrame
             Geo-data frame with a time series of meaurements (columns) at each station
             (rows), with an additional geometry column with the stations' locations.
+
         """
         ts_gdf = gpd.GeoDataFrame(self.get_ts_df(variable).T)
         # get the geometry from stations_gdf

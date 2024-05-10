@@ -6,6 +6,7 @@ from typing import Mapping, Union
 import pandas as pd
 import pyproj
 
+from meteostations import settings
 from meteostations.clients.base import BaseClient, RegionType
 from meteostations.mixins import (
     AllStationsEndpointMixin,
@@ -64,7 +65,7 @@ class MetOfficeClient(
         self.region = region
         self._api_key = api_key
         if sjoin_kws is None:
-            sjoin_kws = {}
+            sjoin_kws = settings.SJOIN_KWS.copy()
         self.SJOIN_KWS = sjoin_kws
         if res_param is None:
             res_param = "hourly"

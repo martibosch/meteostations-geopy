@@ -1,10 +1,12 @@
 """MetOffice client."""
+
 import datetime
 from typing import Mapping, Union
 
 import pandas as pd
 import pyproj
 
+from meteostations import settings
 from meteostations.clients.base import BaseClient, RegionType
 from meteostations.mixins import (
     AllStationsEndpointMixin,
@@ -63,7 +65,7 @@ class MetOfficeClient(
         self.region = region
         self._api_key = api_key
         if sjoin_kws is None:
-            sjoin_kws = {}
+            sjoin_kws = settings.SJOIN_KWS.copy()
         self.SJOIN_KWS = sjoin_kws
         if res_param is None:
             res_param = "hourly"
@@ -105,6 +107,7 @@ class MetOfficeClient(
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
         response_json = self._get_json_from_url(
             self._data_endpoint, params=self.res_param_dict

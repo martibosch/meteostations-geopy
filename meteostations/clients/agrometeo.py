@@ -138,7 +138,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
 
         self.region = region
         if sjoin_kws is None:
-            sjoin_kws = {}
+            sjoin_kws = settings.SJOIN_KWS.copy()
         self.SJOIN_KWS = sjoin_kws
 
     def _stations_df_from_json(self, response_json: dict) -> pd.DataFrame:

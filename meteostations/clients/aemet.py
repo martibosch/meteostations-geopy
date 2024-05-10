@@ -1,4 +1,5 @@
 """MetOffice client."""
+
 from typing import Mapping, Union
 
 import geopandas as gpd
@@ -70,7 +71,7 @@ class AemetClient(
         self.region = region
         self._api_key = api_key
         if sjoin_kws is None:
-            sjoin_kws = {}
+            sjoin_kws = settings.SJOIN_KWS.copy()
         self.SJOIN_KWS = sjoin_kws
 
     def _stations_df_from_json(self, response_json: dict) -> pd.DataFrame:
@@ -117,6 +118,7 @@ class AemetClient(
         -------
         response_json : dict
             JSON-encoded response content.
+
         """
         response_json, _ = self._perform_request(
             url,
@@ -151,6 +153,7 @@ class AemetClient(
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
         response_json = self._get_json_from_url(self._data_endpoint)
         # response_json returns a dict with urls, where the one under the "datos" key
@@ -195,6 +198,7 @@ class AemetClient(
         ts_gdf : gpd.GeoDataFrame
             Geo-data frame with a time series of meaurements (columns) at each station
             (rows), with an additional geometry column with the stations' locations.
+
         """
         ts_gdf = gpd.GeoDataFrame(self.get_ts_df(variable).T)
         # get the geometry from stations_gdf

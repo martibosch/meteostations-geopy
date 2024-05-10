@@ -1,4 +1,5 @@
 """Meteocat client."""
+
 import datetime
 from typing import Mapping, Union
 
@@ -63,7 +64,7 @@ class MeteocatClient(
         self.region = region
         self._api_key = api_key
         if sjoin_kws is None:
-            sjoin_kws = {}
+            sjoin_kws = settings.SJOIN_KWS.copy()
         self.SJOIN_KWS = sjoin_kws
 
     def _stations_df_from_json(self, response_json: dict) -> pd.DataFrame:
@@ -95,6 +96,7 @@ class MeteocatClient(
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
         variable_code = self._process_variable_arg(variable)
         # process date arg
@@ -166,6 +168,7 @@ class MeteocatClient(
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
         # return self._get_ts_df(variable, date)
         date_range = pd.date_range(start=start_date, end=end_date, freq="D")
@@ -195,6 +198,7 @@ class MeteocatClient(
         ts_gdf : gpd.GeoDataFrame
             Geo-data frame with a time series of meaurements (columns) at each station
             (rows), with an additional geometry column with the stations' locations.
+
         """
         ts_gdf = gpd.GeoDataFrame(
             self.get_ts_df(

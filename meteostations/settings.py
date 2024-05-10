@@ -1,10 +1,11 @@
 """Settings."""
+
 import logging as lg
 
 # core
 # STATIONS_ID_NAME = "station_id"
 TIME_NAME = "time"
-SJOIN_PREDICATE = "within"
+SJOIN_KWS = {"how": "inner", "predicate": "intersects"}
 
 # utils
 REQUEST_KWS = {}

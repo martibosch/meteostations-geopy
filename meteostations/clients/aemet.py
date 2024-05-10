@@ -2,7 +2,6 @@
 
 from typing import Mapping, Union
 
-import geopandas as gpd
 import pandas as pd
 import pyproj
 
@@ -178,38 +177,3 @@ class AemetClient(
         ts_df.index.name = settings.TIME_NAME
         # return the sorted data frame
         return ts_df.sort_index()
-
-    def get_ts_gdf(
-        self,
-        variable: Union[str, int],
-    ) -> gpd.GeoDataFrame:
-        """Get time series geo-data frame.
-
-        Parameters
-        ----------
-        variable : str or int
-            Target variable, which can be either an agrometeo variable code (integer or
-            string), an essential climate variable (ECV) following the
-            meteostations-geopy nomenclature (string), or an agrometeo variable name
-            (string).
-
-        Returns
-        -------
-        ts_gdf : gpd.GeoDataFrame
-            Geo-data frame with a time series of meaurements (columns) at each station
-            (rows), with an additional geometry column with the stations' locations.
-
-        """
-        ts_gdf = gpd.GeoDataFrame(self.get_ts_df(variable).T)
-        # get the geometry from stations_gdf
-        # ACHTUNG: `ts_gdf.index.name` will be "idema", whereas in `stations_gdf` we
-        # need to use "indicativo"
-        # TODO: fix the ad-hoc code
-        ts_gdf["geometry"] = self.stations_gdf.set_index("indicativo").loc[
-            ts_gdf.index
-        ]["geometry"]
-        # sort the timestamp columns
-        ts_columns = ts_gdf.columns.drop("geometry")
-        ts_gdf = ts_gdf[sorted(ts_columns) + ["geometry"]]
-
-        return ts_gdf

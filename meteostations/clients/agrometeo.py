@@ -31,7 +31,8 @@ STATIONS_API_ID_COL = "id"
 # stations_id_col : str, optional
 #     Column of `stations_gdf` that will be used in the returned data frame to identify
 #     the stations. If None, the value from `STATIONS_ID_COL` will be used.
-STATIONS_ID_COL = "name"
+# STATIONS_ID_COL = "name"
+STATIONS_ID_COL = "id"
 # variables name column
 VARIABLES_NAME_COL = "name.en"
 # variables code column
@@ -141,7 +142,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         self.SJOIN_KWS = sjoin_kws
 
     def _stations_df_from_json(self, response_json: dict) -> pd.DataFrame:
-        return pd.DataFrame(response_json["data"])
+        return pd.DataFrame(response_json["data"]).set_index(self._stations_id_col)
 
     def _variables_df_from_json(self, response_json: dict) -> pd.DataFrame:
         variables_df = pd.json_normalize(response_json["data"])
@@ -210,7 +211,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         # if stations_id_col is None:
         #     stations_id_col = self._stations_id_col
 
-        _stations_ids = self.stations_gdf[STATIONS_API_ID_COL].astype(str)
+        _stations_ids = self.stations_gdf.index.astype(str)
         request_url = f"{self._data_endpoint}?" + "&".join(
             [
                 f"from={start_date}",
@@ -226,24 +227,43 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
                 f"stations={'%2C'.join(_stations_ids)}",
             ]
         )
-
         response_json = self._get_json_from_url(request_url)
 
         # parse the response as a data frame
         ts_df = pd.json_normalize(response_json["data"]).set_index(self._time_col)
         ts_df.index = pd.to_datetime(ts_df.index)
         ts_df.index.name = settings.TIME_NAME
+
         # ts_df.columns = self.stations_gdf[STATIONS_ID_COL]
         # ACHTUNG: note that agrometeo returns the data indexed by keys of the form
-        # "{station_id}_{variable_code}_{measurement}", so to properly set the columns
-        # as the desired station identifier (e.g., "id" or "name") we need to first get
-        # the ids and then get (loc) the station data from the stations_gdf.
-        ts_df.columns = self.stations_gdf.set_index(STATIONS_API_ID_COL).loc[
-            ts_df.columns.str.replace(
-                [f"_{variable_code}_{measurement}" for variable_code in variable_codes],
-                "",
-            ).astype(self.stations_gdf[STATIONS_API_ID_COL].dtype)
-        ][self._stations_id_col]
+        # "{station_id}_{variable_code}_{measurement}". We can ignore the latter and
+        # convert to a two-level (station, variable) multi index
+        ts_df.columns = (
+            ts_df.columns.str.split("_")
+            .str[:-1]
+            .map(tuple)
+            .rename(["station", "variable"])
+        )
+        # convert station ids to integer
+        # ts_df.columns = ts_df.columns.set_levels(
+        #     ts_df.columns.levels["station"].astype(int), level="station"
+        # )
+        ts_df.columns = ts_df.columns.set_levels(
+            ts_df.columns.levels[0].astype(int), level=0
+        )
+        # ensure that we return the variable column names as provided by the user in the
+        # `variables` argument (e.g., if the user provided variable codes, use
+        # variable codes in the column names).
+        # TODO: avoid this if the user provided variable codes (in which case the dict
+        # maps variable codes to variable codes)?
+        variable_label_dict = {
+            str(variable_code): variable
+            for variable_code, variable in zip(variable_codes, variables)
+        }
+        ts_df.columns = ts_df.columns.set_levels(
+            ts_df.columns.levels[1].map(variable_label_dict), level=1
+        )
+        # ensure numeric dtypes
         ts_df = ts_df.apply(pd.to_numeric, axis=1)
-
+        # sort the index
         return ts_df.sort_index()

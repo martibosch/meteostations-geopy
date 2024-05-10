@@ -33,6 +33,7 @@ class StationsEndpointMixin(ABC):
         -------
         stations_gdf : gpd.GeoDataFrame
             The stations data for the given region as a GeoDataFrame.
+
         """
         stations_df = self._get_stations_df()
         return gpd.GeoDataFrame(
@@ -77,4 +78,6 @@ class AllStationsEndpointMixin(StationsEndpointMixin):
         # TODO: do we need to copy the dict to avoid reference issues?
         _sjoin_kws = self.SJOIN_KWS.copy()
         # predicate = _sjoin_kws.pop("predicate", SJOIN_PREDICATE)
-        return stations_gdf.sjoin(self.region, **_sjoin_kws)[stations_gdf.columns]
+        return stations_gdf.sjoin(self.region[["geometry"]], **_sjoin_kws)[
+            stations_gdf.columns
+        ]

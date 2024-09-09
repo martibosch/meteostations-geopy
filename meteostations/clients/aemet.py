@@ -1,4 +1,5 @@
 """MetOffice client."""
+
 from typing import Mapping, Union
 
 import pandas as pd
@@ -110,6 +111,7 @@ class AemetClient(
         -------
         response_json : dict
             JSON-encoded response content.
+
         """
         response_json, _ = self._perform_request(
             url,
@@ -144,6 +146,7 @@ class AemetClient(
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
         response_json = self._get_json_from_url(DATA_ENDPOINT)
         # response_json returns a dict with urls, where the one under the "datos" key

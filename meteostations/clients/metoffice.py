@@ -1,4 +1,5 @@
 """MetOffice client."""
+
 from typing import Mapping, Union
 
 import pandas as pd

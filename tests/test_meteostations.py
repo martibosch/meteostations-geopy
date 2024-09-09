@@ -1,4 +1,5 @@
 """Tests for Meteostations geopy."""
+
 import json
 import logging as lg
 import tempfile

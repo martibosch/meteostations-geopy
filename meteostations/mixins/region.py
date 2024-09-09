@@ -1,4 +1,5 @@
 """Region mixins."""
+
 import os
 from typing import IO, Sequence, Union
 
@@ -35,6 +36,7 @@ class RegionMixin:
     geocode_to_gdf_kws : dict or None, optional
         Keyword arguments to pass to `geocode_to_gdf` if `region` is a string
         corresponding to a place name (Nominatim query).
+
     """
 
     @property
@@ -80,6 +82,7 @@ class RegionMixin:
             The processed region as a GeoDataFrame, in the CRS used by the client's
             class. A value of None is returned when passing a place name (Nominatim
             query) but osmnx is not installed.
+
         """
         # crs : Any, optional
         # Coordinate Reference System of the provided `region`. Ignored if `region` is a

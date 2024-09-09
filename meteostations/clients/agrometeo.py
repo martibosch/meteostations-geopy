@@ -1,4 +1,5 @@
 """Agrometeo client."""
+
 import datetime
 from typing import Any, Mapping, Union
 
@@ -176,6 +177,7 @@ class AgrometeoClient(
         ts_df : pd.DataFrame
             Data frame with a time series of meaurements (rows) at each station
             (columns).
+
         """
         variable_code = self._process_variable_arg(variable)
 
@@ -258,6 +260,7 @@ class AgrometeoClient(
         ts_gdf : gpd.GeoDataFrame
             Geo-data frame with a time series of meaurements (columns) at each station
             (rows), with an additional geometry column with the stations' locations.
+
         """
         ts_gdf = gpd.GeoDataFrame(
             self.get_ts_df(

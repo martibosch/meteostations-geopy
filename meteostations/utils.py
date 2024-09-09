@@ -2,6 +2,7 @@
 
 Based on osmnx utils and downloader modules.
 """
+
 import datetime as dt
 import json
 import logging as lg
@@ -46,6 +47,7 @@ def ts(*, style: str = "datetime", template: Union[str, None] = None) -> str:
     -------
     ts : str
         The string timestamp.
+
     """
     if template is None:
         if style == "datetime":
@@ -76,6 +78,7 @@ def _get_logger(level: int, name: str, filename: str) -> lg.Logger:
     Returns
     -------
     logger : logging.logger
+
     """
     logger = lg.getLogger(name)
 
@@ -120,6 +123,7 @@ def log(
         Name of the logger.
     filename : str
         Name of the log file, without file extension.
+
     """
     if level is None:
         level = settings.LOG_LEVEL
@@ -177,6 +181,7 @@ def _url_in_cache(url: str) -> Union[Path, None]:
     -------
     filepath : pathlib.Path
         Path to cached response for url if it exists, otherwise None.
+
     """
     # hash the url to generate the cache filename
     filename = sha1(url.encode("utf-8")).hexdigest() + ".json"
@@ -201,6 +206,7 @@ def _retrieve_from_cache(url: str, *, check_remark: bool = False) -> Union[dict,
     -------
     response_json : dict
         Cached response for the url if it exists in the cache, otherwise None.
+
     """
     # if the tool is configured to use the cache
     if settings.USE_CACHE:
@@ -241,6 +247,7 @@ def _save_to_cache(url: str, response_json: dict, sc: int) -> None:
         JSON response.
     sc : int
         response's HTTP status code.
+
     """
     if settings.USE_CACHE:
         if sc != 200:

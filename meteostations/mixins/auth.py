@@ -1,4 +1,5 @@
 """Authentication mixins."""
+
 from abc import ABC, abstractmethod
 
 from better_abc import abstract_attribute

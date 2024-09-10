@@ -1,4 +1,5 @@
 """Variables mixins."""
+
 import pandas as pd
 from better_abc import abstract_attribute
 

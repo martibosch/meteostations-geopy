@@ -1,7 +1,7 @@
 """MetOffice client."""
 
 import datetime
-from typing import Mapping, Union
+from typing import List, Mapping, Union
 
 import pandas as pd
 import pyproj
@@ -91,16 +91,17 @@ class MetOfficeClient(
 
     def get_ts_df(
         self,
-        variable: Union[str, int],
+        variables: Union[str, int, List[str], List[int]],
     ) -> pd.DataFrame:
         """Get time series data frame for the last 24h.
 
         Parameters
         ----------
-        variable : str or int
-            Target variable, which can be either an Aemet variable code (integer or
-            string) or an essential climate variable (ECV) following the
-            meteostations-geopy nomenclature (string).
+        variables : str, int or list-like of str or int
+            Target variables, which can be either an agrometeo variable code (integer or
+            string), an essential climate variable (ECV) following the
+            meteostations-geopy nomenclature (string), or an agrometeo variable name
+            (string).
 
         Returns
         -------
@@ -152,20 +153,33 @@ class MetOfficeClient(
         )
         ts_df = ts_df.set_index("time")  # .sort_index()
 
-        # filter to have only the variable of interest
-        variable_code = self._process_variable_arg(variable)
+        # process variables
+        # TODO: DRY
+        if not pd.api.types.is_list_like(variables):
+            variables = [variables]
+        variable_codes = [
+            self._process_variable_arg(variable) for variable in variables
+        ]
+        # ensure that we return the variable column names as provided by the user in the
+        # `variables` argument (e.g., if the user provided variable codes, use
+        # variable codes in the column names).
+        # TODO: avoid this if the user provided variable codes (in which case the dict
+        # maps variable codes to variable codes)?
+        variable_label_dict = {
+            str(variable_code): variable
+            for variable_code, variable in zip(variable_codes, variables)
+        }
 
         # return in proper shape, i.e., time as index, station as columns, and infer
         # numeric dtypes
-        return (
-            pd.DataFrame(
-                {
-                    group: group_df[variable_code]
-                    for group, group_df in ts_df[
-                        [variable_code, _station_id_col]
-                    ].groupby(_station_id_col)
-                }
-            )
-            .sort_index()
-            .apply(pd.to_numeric)
+        return pd.concat(
+            [
+                pd.concat(
+                    [station_df[variable_codes].rename(columns=variable_label_dict)],
+                    axis="columns",
+                    keys=[station_id],
+                )
+                for station_id, station_df in ts_df.groupby(_station_id_col)
+            ],
+            axis="columns",
         )

@@ -87,13 +87,13 @@ VARIABLES_CODE_COL = "id"
 # 104                 Density of sporulation
 # 105                           Leaf surface
 ECV_DICT = {
-    "precipitation": "Precipitation",
-    "pressure": "Real air pressure",
-    "surface_radiation_shortwave": "Solar radiation",
-    "surface_wind_speed": "Avg. wind speed",
-    "surface_wind_direction": "Wind direction",
-    "temperature": "Temperature 2m above ground",
-    "water_vapour": "Relative humidity",
+    "precipitation": 6,  # "Precipitation",
+    "pressure": 18,  # "Real air pressure",
+    "surface_radiation_shortwave": 11,  # "Solar radiation",
+    "surface_wind_speed": 9,  # "Avg. wind speed",
+    "surface_wind_direction": 8,  # "Wind direction",
+    "temperature": 1,  # "Temperature 2m above ground",
+    "water_vapour": 4,  # "Relative humidity",
 }
 TIME_COL = "date"
 API_DT_FMT = "%Y-%m-%d"
@@ -171,9 +171,9 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseJSON
         Parameters
         ----------
         variables : str, int or list-like of str or int
-            Target variables, which can be either an agrometeo variable code (integer or
+            Target variables, which can be either an Agrometeo variable code (integer or
             string), an essential climate variable (ECV) following the
-            meteostations-geopy nomenclature (string), or an agrometeo variable name
+            meteostations-geopy nomenclature (string), or an Agrometeo variable name
             (string).
         start_date, end_date : str or datetime.date
             String in the "YYYY-MM-DD" format or datetime.date instance, respectively
@@ -193,11 +193,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseJSON
 
         """
         # process variables
-        if not pd.api.types.is_list_like(variables):
-            variables = [variables]
-        variable_codes = [
-            self._process_variable_arg(variable) for variable in variables
-        ]
+        variable_codes = self._get_variable_codes(variables)
 
         # process date args
         if isinstance(start_date, datetime.date):
@@ -216,23 +212,18 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseJSON
 
         _stations_ids = self.stations_gdf.index.astype(str)
         # TODO: use parameters instead of str formatting?
-        request_url = f"{self._data_endpoint}?" + "&".join(
-            [
-                f"from={start_date}",
-                f"to={end_date}",
-                f"scale={scale}",
-                "sensors="
-                + "%2C".join(
-                    [
-                        f"{variable_code}%3A{measurement}"
-                        for variable_code in variable_codes
-                    ]
-                ),
-                f"stations={'%2C'.join(_stations_ids)}",
-            ]
+        data_params = {
+            "from": start_date,
+            "to": end_date,
+            "scale": scale,
+            "sensors": ",".join(
+                f"{variable_code}:{measurement}" for variable_code in variable_codes
+            ),
+            "stations": ",".join(_stations_ids),
+        }
+        response_content = self._get_content_from_url(
+            self._data_endpoint, params=data_params
         )
-
-        response_content = self._get_content_from_url(request_url)
 
         # parse the response as a data frame
         ts_df = pd.json_normalize(response_content["data"]).set_index(self._time_col)
@@ -256,6 +247,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseJSON
         ts_df.columns = ts_df.columns.set_levels(
             ts_df.columns.levels[0].astype(int), level=0
         )
+
         # ensure that we return the variable column names as provided by the user in the
         # `variables` argument (e.g., if the user provided variable codes, use
         # variable codes in the column names).
@@ -265,10 +257,13 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseJSON
             str(variable_code): variable
             for variable_code, variable in zip(variable_codes, variables)
         }
-        ts_df.columns = ts_df.columns.set_levels(
-            ts_df.columns.levels[1].map(variable_label_dict), level=1
+
+        # convert into long data frame, rename the variable columns, ensure numeric
+        # dtypes and return the sorted data frame
+        return (
+            ts_df.stack(level="station")
+            .swaplevel()
+            .rename(columns=variable_label_dict)
+            .apply(pd.to_numeric, axis=1)
+            .sort_index()
         )
-        # ensure numeric dtypes
-        ts_df = ts_df.apply(pd.to_numeric, axis=1)
-        # sort the index
-        return ts_df.sort_index()

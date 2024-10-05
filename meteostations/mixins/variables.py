@@ -24,7 +24,7 @@ class VariablesMixin:
         pass
 
     @abstract_attribute
-    def _variables_name_col(self):
+    def _variables_label_col(self):
         pass
 
     @abstract_attribute
@@ -37,7 +37,6 @@ class VariablesMixin:
         # a) a variable code according to the provider's nomenclature
         # b) an essential climate variable (ECV) following the meteostations-geopy
         # nomenclature
-        # c) a variable name according to the provider's nomenclature
         if isinstance(variable, int) or variable.isdigit():
             # case a: if variable is an integer, assert that it is a valid variable code
             variable_code = int(variable)
@@ -48,16 +47,22 @@ class VariablesMixin:
             # just return it as it is
             return variable
         else:
-            # case b or c: if variable is an ECV, it will be a key in the ECV_DICT so
+            # case b: if variable is an ECV, it will be a key in the ECV_DICT so
             # the provider's variable code can be retrieved directly, otherwise we
             # assume that variable is a variable name (provider's nomenclature).
-            variable_name = self._ecv_dict.get(variable, variable)
-            variable_code = self.variables_df.loc[
-                self.variables_df[self._variables_name_col] == variable_name,
-                self._variables_code_col,
-            ].item()
+            variable_code = self._ecv_dict.get(variable, variable)
+            # variable_code = self.variables_df.loc[
+            #     self.variables_df[self._variables_label_col] == variable_name,
+            #     self._variables_code_col,
+            # ].item()
 
         return variable_code
+
+    def _get_variable_codes(self, variables):
+        """Given the `variables` argument, return a list of variable codes."""
+        if not pd.api.types.is_list_like(variables):
+            variables = [variables]
+        return [self._process_variable_arg(variable) for variable in variables]
 
 
 class VariablesHardcodedMixin(VariablesMixin):
@@ -75,7 +80,7 @@ class VariablesHardcodedMixin(VariablesMixin):
         except AttributeError:
             variables_df = pd.DataFrame(
                 self._variables_dict.items(),
-                columns=[self._variables_code_col, self._variables_name_col],
+                columns=[self._variables_code_col, self._variables_label_col],
             )
             self._variables_df = variables_df
             return self._variables_df
@@ -94,6 +99,6 @@ class VariablesEndpointMixin(VariablesMixin):
         try:
             return self._variables_df
         except AttributeError:
-            response_content = self._get_content(self._variables_endpoint)
+            response_content = self._get_content_from_url(self._variables_endpoint)
             self._variables_df = self._variables_df_from_content(response_content)
             return self._variables_df

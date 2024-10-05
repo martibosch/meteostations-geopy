@@ -1,7 +1,7 @@
 """Meteocat client."""
 
 import datetime
-from typing import Mapping, Union
+from typing import List, Mapping, Union
 
 import pandas as pd
 import pyproj
@@ -22,16 +22,16 @@ DATA_ENDPOINT = f"{BASE_URL}/variables/mesurades"
 
 # useful constants
 STATIONS_ID_COL = "codi"
-VARIABLES_NAME_COL = "nom"
+# VARIABLES_NAME_COL = "nom"
 VARIABLES_CODE_COL = "codi"
 ECV_DICT = {
-    "precipitation": "Precipitació",
-    "pressure": "Pressió atmosfèrica",
-    "surface_radiation_shortwave": "Radiació UV",
-    "surface_wind_speed": "Velocitat del vent a 10 m (esc.)",
-    "surface_wind_direction": "Direcció de vent 10 m (m. 1)",
-    "temperature": "Temperatura",
-    "water_vapour": "Humitat relativa",
+    "precipitation": 35,  # "Precipitació",
+    "pressure": 34,  # "Pressió atmosfèrica",
+    "surface_radiation_shortwave": 39,  # "Radiació UV",
+    "surface_wind_speed": 46,  # "Velocitat del vent a 2 m (esc.)",
+    "surface_wind_direction": 47,  # "Direcció de vent 2 m (m. 1)",
+    "temperature": 32,  # "Temperatura",
+    "water_vapour": 33,  # "Humitat relativa",
 }
 TIME_COL = "data"
 
@@ -50,7 +50,7 @@ class MeteocatClient(
     _stations_endpoint = STATIONS_ENDPOINT
     _stations_id_col = STATIONS_ID_COL
     _variables_endpoint = VARIABLES_ENDPOINT
-    _variables_name_col = VARIABLES_NAME_COL
+    # _variables_name_col = VARIABLES_NAME_COL
     _variables_code_col = VARIABLES_CODE_COL
     _ecv_dict = ECV_DICT
     _data_endpoint = DATA_ENDPOINT
@@ -77,21 +77,17 @@ class MeteocatClient(
 
     def _get_ts_df(
         self,
-        variable: Union[str, int],
-        date: Union[str, datetime.date],
+        variable_code: int,
+        date: datetime.date,
     ) -> pd.DataFrame:
         """Get time series data frame for a given day.
 
         Parameters
         ----------
-        variable : str or int
-            Target variable, which can be either a Meteocat variable code (integer or
-            string), an essential climate variable (ECV) following the
-            meteostations-geopy nomenclature (string), or a Meteocat variable name
-            (string).
-        date : str or datetime.date
-            String in the "YYYY-MM-DD" format or datetime.date instance,
-            representing the start and end days of the requested data period.
+        variable_code : int
+            Meteocat variable code.
+        date : datetime.date
+            datetime.date instance for the requested data period.
 
         Returns
         -------
@@ -100,10 +96,9 @@ class MeteocatClient(
             (columns).
 
         """
-        variable_code = self._process_variable_arg(variable)
-        # process date arg
-        if isinstance(date, str):
-            date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+        # # process date arg
+        # if isinstance(date, str):
+        #     date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
         # request url
         request_url = (
             f"{self._data_endpoint}"
@@ -118,13 +113,13 @@ class MeteocatClient(
         ]
         # extract json observed data, i.e.,  the "variables" column into a list of data
         # frames and concatenate them into a single data frame
-        long_df = pd.concat(
+        ts_df = pd.concat(
             response_df.apply(
                 lambda row: pd.DataFrame(row["variables"][0]["lectures"]), axis=1
             ).tolist()
         )
         # add the station id column matching the observations
-        long_df[self._stations_id_col] = (
+        ts_df[self._stations_id_col] = (
             response_df[self._stations_id_col]
             .repeat(
                 response_df.apply(
@@ -135,20 +130,23 @@ class MeteocatClient(
         )
         # TODO: values_col as class-level constant?
         values_col = "valor"
-        # convert to a wide data frame
-        ts_df = long_df.pivot_table(
-            index=self._time_col, columns=self._stations_id_col, values=values_col
-        )
-        # set the index name
-        ts_df.index.name = settings.TIME_NAME
-        # convert the index from string to datetime
-        ts_df.index = pd.to_datetime(ts_df.index)
-        # return the sorted data frame
-        return ts_df.sort_index()
+        # # convert to a wide data frame
+        # ts_df = long_df.pivot_table(
+        #     index=self._time_col, columns=self._stations_id_col, values=values_col
+        # )
+        # # set the index name
+        # ts_df.index.name = settings.TIME_NAME
+        # # convert the index from string to datetime
+        # ts_df.index = pd.to_datetime(ts_df.index)
+        # ACHTUNG: do not sort the index here
+        # note that we are renaming a series
+        return ts_df.set_index([self._stations_id_col, self._time_col])[
+            values_col
+        ].rename(variable_code)
 
     def get_ts_df(
         self,
-        variable: Union[str, int],
+        variables: Union[str, int, List[str], List[int]],
         start_date: Union[str, datetime.date],
         end_date: Union[str, datetime.date],
     ) -> pd.DataFrame:
@@ -157,7 +155,7 @@ class MeteocatClient(
         Parameters
         ----------
         variable : str or int
-            Target variable, which can be either a Meteocat variable code (integer or
+            Target variables, which can be either a Meteocat variable code (integer or
             string), an essential climate variable (ECV) following the
             meteostations-geopy nomenclature (string), or a Meteocat variable name
             (string).
@@ -172,6 +170,41 @@ class MeteocatClient(
             (columns).
 
         """
+        # process variables
+        # ensure variable codes have the same dtype as in the variables data frame
+        variable_codes = pd.Series(
+            self._get_variable_codes(variables),
+            dtype=self.variables_df[self._variables_code_col].dtype,
+        )
+
         # return self._get_ts_df(variable, date)
         date_range = pd.date_range(start=start_date, end=end_date, freq="D")
-        return pd.concat(self._get_ts_df(variable, date) for date in date_range)
+
+        # ensure that we return the variable column names as provided by the user in the
+        # `variables` argument (e.g., if the user provided variable codes, use
+        # variable codes in the column names).
+        # TODO: avoid this if the user provided variable codes (in which case the dict
+        # maps variable codes to variable codes)?
+        variable_label_dict = {
+            variable_code: variable
+            for variable_code, variable in zip(variable_codes, variables)
+        }
+        return (
+            pd.concat(
+                [
+                    pd.concat(
+                        [
+                            self._get_ts_df(variable_code, date)
+                            for variable_code in variable_codes
+                        ],
+                        axis="columns",
+                        ignore_index=False,
+                    )
+                    for date in date_range
+                ],
+                axis="index",
+                ignore_index=False,
+            )
+            .rename(columns=variable_label_dict)
+            .sort_index()
+        )

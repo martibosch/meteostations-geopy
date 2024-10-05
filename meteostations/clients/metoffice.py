@@ -7,7 +7,7 @@ import pandas as pd
 import pyproj
 
 from meteostations import settings
-from meteostations.clients.base import BaseClient, RegionType
+from meteostations.clients.base import BaseJSONClient, RegionType
 from meteostations.mixins import (
     AllStationsEndpointMixin,
     APIKeyParamMixin,
@@ -38,7 +38,7 @@ ECV_DICT = {
 
 
 class MetOfficeClient(
-    APIKeyParamMixin, AllStationsEndpointMixin, VariablesEndpointMixin, BaseClient
+    APIKeyParamMixin, AllStationsEndpointMixin, VariablesEndpointMixin, BaseJSONClient
 ):
     """MetOffice client."""
 
@@ -115,6 +115,9 @@ class MetOfficeClient(
             (columns).
 
         """
+        # process variables
+        variable_codes = self._get_variable_codes(variables)
+
         with self._session.cache_disabled():
             response_content = self._get_content_from_url(
                 self._data_endpoint, params=self.res_param_dict
@@ -138,8 +141,12 @@ class MetOfficeClient(
         # first, filter by stations of interest
         # ACHTUNG: in MetOffice, the station id col is "id" in the stations endpoint but
         # "i" in the data endpoint
-        _station_id_col = "i"
-        df = df[df[_station_id_col].isin(self.stations_gdf["id"].values)]
+        _data_station_id_col = "i"
+        df = df[
+            df[_data_station_id_col].isin(
+                self.stations_gdf[self._stations_id_col].values
+            )
+        ]
         # process the observations in the filtered location
         ts_df = pd.concat(
             [
@@ -148,24 +155,18 @@ class MetOfficeClient(
                         pd.DataFrame(obs_dict["Rep"])
                         for obs_dict in station_records[::-1]
                     ]
-                ).assign(**{_station_id_col: station_id})
+                ).assign(**{_data_station_id_col: station_id})
                 for station_id, station_records in df["Period"].items()
             ]
         )
+
         # compute the timestamp of each observation (the "$" column contains the minutes
         # before `latest_obs_time`
         ts_df["time"] = ts_df["$"].apply(
             lambda dt: latest_obs_time - datetime.timedelta(minutes=int(dt))
         )
-        ts_df = ts_df.set_index("time")  # .sort_index()
+        # ts_df = ts_df.set_index("time")  # .sort_index()
 
-        # process variables
-        # TODO: DRY
-        if not pd.api.types.is_list_like(variables):
-            variables = [variables]
-        variable_codes = [
-            self._process_variable_arg(variable) for variable in variables
-        ]
         # ensure that we return the variable column names as provided by the user in the
         # `variables` argument (e.g., if the user provided variable codes, use
         # variable codes in the column names).
@@ -175,17 +176,15 @@ class MetOfficeClient(
             str(variable_code): variable
             for variable_code, variable in zip(variable_codes, variables)
         }
-
-        # return in proper shape, i.e., time as index, station as columns, and infer
-        # numeric dtypes
-        return pd.concat(
-            [
-                pd.concat(
-                    [station_df[variable_codes].rename(columns=variable_label_dict)],
-                    axis="columns",
-                    keys=[station_id],
-                )
-                for station_id, station_df in ts_df.groupby(_station_id_col)
-            ],
-            axis="columns",
+        _index_cols = [_data_station_id_col, "time"]
+        # convert into long data frame, rename the variable columns, ensure numeric
+        # dtypes and return the sorted data frame
+        return (
+            ts_df[variable_codes]
+            .apply(pd.to_numeric)
+            .assign(**{_index_col: ts_df[_index_col] for _index_col in _index_cols})
+            .pivot_table(index=_index_cols)
+            .rename(columns=variable_label_dict)
+            .apply(pd.to_numeric, axis=1)
+            .sort_index()
         )

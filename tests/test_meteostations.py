@@ -84,6 +84,10 @@ def test_region_arg():
 class BaseClientTest:
     client_cls = None
     region = None
+    variables = ["temperature", "pressure"]
+    variable_codes = None
+    ts_df_args = None
+    ts_df_kwargs = None
 
     def setUp(self):
         self.client = self.client_cls(region=self.region)
@@ -102,6 +106,23 @@ class BaseClientTest:
         if isinstance(self.client, VariablesEndpointMixin):
             variables_df = self.client.variables_df
             assert len(variables_df) >= 1
+
+    def test_time_series(self):
+        if self.ts_df_args is None:
+            ts_df_args = []
+        else:
+            ts_df_args = self.ts_df_args.copy()
+        if self.ts_df_kwargs is None:
+            ts_df_kwargs = {}
+        else:
+            ts_df_kwargs = self.ts_df_kwargs.copy()
+        for variables in [self.variables, self.variable_codes]:
+            ts_df = self.client.get_ts_df(self.variables, *ts_df_args, **ts_df_kwargs)
+            assert len(ts_df.columns) == len(self.variables)
+            # TODO: use "station" as `level` arg?
+            assert len(ts_df.index.get_level_values(0).unique()) == len(
+                self.client.stations_gdf
+            )
 
 
 class APIKeyClientTest(BaseClientTest):
@@ -136,63 +157,36 @@ class AemetClientTest(APIKeyParamClientTest, unittest.TestCase):
     client_cls = AemetClient
     region = "Catalunya"
     api_key = os.environ["AEMET_API_KEY"]
-    variables = ["temperature", "prec", "11", 11]
+    variable_codes = ["ta", "pres"]
 
-    def test_data(self):
-        len(self.client.stations_gdf)
-        # test that variable can be an ECV following the meteostations-geopy
-        # nomenclature, a variable name following the agrometeo nomenclature and a
-        # variable code (as str or int) following the agrometeo nomenclature
-        for variable in self.variables:
-            self.client.get_ts_df(variable)
-            # ACHTUNG: for some reason (internal to Aemet's API), we get more stations
-            # from the stations endpoint than from the data endpoint, so the assertions
-            # below would fail.
-            # assert len(ts_df.columns) == num_stations
-            ts_gdf = self.client.get_ts_gdf(variable)
-            # assert len(ts_gdf) == num_stations
-            assert ts_gdf["geometry"].isna().sum() == 0
+    def test_time_series(self):
+        self.client.get_ts_df(self.variables)
+        # ACHTUNG: for some reason (internal to Aemet's API), we get more stations from
+        # the stations endpoint than from the data endpoint, so the assertions of the
+        # `test_time_series` method would fail
 
 
 class AgrometeoClientTest(BaseClientTest, unittest.TestCase):
     client_cls = AgrometeoClient
     region = "Pully, Switzerland"
+    variable_codes = [1, 18]
     start_date = "2022-03-22"
     end_date = "2022-03-23"
-    variables = ["temperature", "Precipitation", "1", 1]
-
-    def test_data(self):
-        num_stations = len(self.client.stations_gdf)
-        # test that variable can be an ECV following the meteostations-geopy
-        # nomenclature, a variable name following the agrometeo nomenclature and a
-        # variable code (as str or int) following the agrometeo nomenclature
-        for variable in self.variables:
-            ts_df = self.client.get_ts_df(variable, self.start_date, self.end_date)
-            assert len(ts_df.columns) == num_stations
-            ts_gdf = self.client.get_ts_gdf(variable, self.start_date, self.end_date)
-            assert len(ts_gdf) == num_stations
-            assert ts_gdf["geometry"].isna().sum() == 0
+    ts_df_args = [start_date, end_date]
 
 
 class MeteocatClientTest(APIKeyHeaderClientTest, unittest.TestCase):
     client_cls = MeteocatClient
     region = "Conca de Barberà"
     api_key = os.environ["METEOCAT_API_KEY"]
+    variable_codes = [32, 34]
     start_date = "2022-03-22"
     end_date = "2022-03-23"
-    variables = ["temperature", "Humitat relativa", "33", 33]
-
-    def test_data(self):
-        num_stations = len(self.client.stations_gdf)
-        for variable in self.variables:
-            ts_df = self.client.get_ts_df(variable, self.start_date, self.end_date)
-            assert len(ts_df.columns) == num_stations
-            ts_gdf = self.client.get_ts_gdf(variable, self.start_date, self.end_date)
-            assert len(ts_gdf) == num_stations
-            assert ts_gdf["geometry"].isna().sum() == 0
+    ts_df_args = [start_date, end_date]
 
 
 class MetOfficeClientTest(APIKeyParamClientTest, unittest.TestCase):
     client_cls = MetOfficeClient
     region = "Edinburgh"
     api_key = os.environ["METOFFICE_API_KEY"]
+    variable_codes = ["T", "P"]

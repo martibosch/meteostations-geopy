@@ -1,12 +1,12 @@
 """MetOffice client."""
 
-from typing import Mapping, Union
+from typing import List, Mapping, Union
 
 import pandas as pd
 import pyproj
 
 from meteostations import settings, utils
-from meteostations.clients.base import BaseClient, RegionType
+from meteostations.clients.base import BaseJSONClient, RegionType
 from meteostations.mixins import (
     AllStationsEndpointMixin,
     APIKeyParamMixin,
@@ -24,7 +24,7 @@ VARIABLES_ENDPOINT = DATA_ENDPOINT = f"{BASE_URL}/observacion/convencional/todas
 # ACHTUNG: in Aemet, the station id col is "indicativo" in the stations endpoint but
 # "idema" in the data endpoint
 STATIONS_ID_COL = "idema"
-VARIABLES_NAME_COL = VARIABLES_CODE_COL = "id"
+VARIABLES_CODE_COL = "id"
 ECV_DICT = {
     "precipitation": "prec",
     "pressure": "pres",
@@ -40,7 +40,7 @@ class AemetClient(
     APIKeyParamMixin,
     AllStationsEndpointMixin,
     VariablesEndpointMixin,
-    BaseClient,
+    BaseJSONClient,
 ):
     """MetOffice client."""
 
@@ -50,7 +50,7 @@ class AemetClient(
     _stations_endpoint = STATIONS_ENDPOINT
     _stations_id_col = STATIONS_ID_COL
     _variables_endpoint = VARIABLES_ENDPOINT
-    _variables_name_col = VARIABLES_NAME_COL
+    # _variables_name_col = VARIABLES_NAME_COL
     _variables_code_col = VARIABLES_CODE_COL
     _ecv_dict = ECV_DICT
     _data_endpoint = DATA_ENDPOINT
@@ -94,7 +94,6 @@ class AemetClient(
         try:
             return self._variables_df
         except AttributeError:
-            # TODO: DRY setting `res_param` in `self.request_params`?
             with self._session.cache_disabled():
                 response_content = self._get_content_from_url(self._variables_endpoint)
             self._variables_df = self._variables_df_from_content(response_content)
@@ -102,16 +101,17 @@ class AemetClient(
 
     def get_ts_df(
         self,
-        variable: Union[str, int],
+        variables: Union[str, int, List[str], List[int]],
     ) -> pd.DataFrame:
         """Get time series data frame for the last 24h.
 
         Parameters
         ----------
-        variable : str or int
-            Target variable, which can be either an Aemet variable code (integer or
-            string) or an essential climate variable (ECV) following the
-            meteostations-geopy nomenclature (string).
+        variables : str, int or list-like of str or int
+            Target variables, which can be either an AEMET variable code (integer or
+            string), an essential climate variable (ECV) following the
+            meteostations-geopy nomenclature (string), or an agrometeo variable name
+            (string).
 
         Returns
         -------
@@ -120,27 +120,39 @@ class AemetClient(
             (columns).
 
         """
+        # process the variable arg
+        variable_codes = self._get_variable_codes(variables)
+
         with self._session.cache_disabled():
             response_content = self._get_content_from_url(self._data_endpoint)
         # response_content returns a dict with urls, where the one under the "datos" key
         # contains the JSON data
-        long_df = pd.read_json(response_content["datos"], encoding="latin1")
+        ts_df = pd.read_json(response_content["datos"], encoding="latin1")
         # filter only stations from the region
         # TODO: how to handle better the "indicativo" column name? i.e., the stations id
         # column is "idema" in the observation data frame but "indicativo" in the
         # stations data frame.
-        long_df = long_df[
-            long_df[self._stations_id_col].isin(self.stations_gdf["indicativo"])
+        ts_df = ts_df[
+            ts_df[self._stations_id_col].isin(self.stations_gdf["indicativo"])
         ]
-        # process the variable arg
-        # TODO: in this case, there is no variable name, only variable code
-        variable_code = self._process_variable_arg(variable)
-        # convert to wide_df
+
+        # # convert to wide_df
         # TODO: allow returning long_df?
-        ts_df = long_df.pivot_table(
-            index=self._time_col, columns=self._stations_id_col, values=variable_code
-        )
-        # set the index name
-        ts_df.index.name = settings.TIME_NAME
+        # ts_df = long_df.pivot_table(
+        #     index=self._time_col, columns=self._stations_id_col, values=variable_codes
+        # )
+        # set station-time multi-level index
+        ts_df = ts_df.set_index([self._stations_id_col, self._time_col])
+
+        # ensure that we return the variable column names as provided by the user in the
+        # `variables` argument (e.g., if the user provided variable codes, use
+        # variable codes in the column names).
+        # TODO: avoid this if the user provided variable codes (in which case the dict
+        # maps variable codes to variable codes)?
+        variable_label_dict = {
+            str(variable_code): variable
+            for variable_code, variable in zip(variable_codes, variables)
+        }
+
         # return the sorted data frame
-        return ts_df.sort_index()
+        return ts_df[variable_codes].rename(columns=variable_label_dict).sort_index()

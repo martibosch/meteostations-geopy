@@ -71,11 +71,14 @@ class MetOfficeClient(
             res_param = "hourly"
         self.res_param_dict = {"res": res_param}
 
-    def _stations_df_from_json(self, response_json: dict) -> pd.DataFrame:
-        return pd.DataFrame(response_json["Locations"]["Location"])
+        # need to call super().__init__() to set the cache
+        super().__init__()
 
-    def _variables_df_from_json(self, response_json) -> pd.DataFrame:
-        return pd.DataFrame(response_json["SiteRep"]["Wx"]["Param"])
+    def _stations_df_from_content(self, response_content: dict) -> pd.DataFrame:
+        return pd.DataFrame(response_content["Locations"]["Location"])
+
+    def _variables_df_from_content(self, response_content) -> pd.DataFrame:
+        return pd.DataFrame(response_content["SiteRep"]["Wx"]["Param"])
 
     @property
     def variables_df(self) -> pd.DataFrame:
@@ -83,10 +86,12 @@ class MetOfficeClient(
         try:
             return self._variables_df
         except AttributeError:
-            response_json = self._get_json_from_url(
-                self._variables_endpoint, params=self.res_param_dict
-            )
-            self._variables_df = self._variables_df_from_json(response_json)
+            # TODO: DRY setting `res_param` in `self.request_params`?
+            with self._session.cache_disabled():
+                response_content = self._get_content_from_url(
+                    self._variables_endpoint, params=self.res_param_dict
+                )
+            self._variables_df = self._variables_df_from_content(response_content)
             return self._variables_df
 
     def get_ts_df(
@@ -110,17 +115,18 @@ class MetOfficeClient(
             (columns).
 
         """
-        response_json = self._get_json_from_url(
-            self._data_endpoint, params=self.res_param_dict
-        )
+        with self._session.cache_disabled():
+            response_content = self._get_content_from_url(
+                self._data_endpoint, params=self.res_param_dict
+            )
 
         # this is the time of the latest observation, from which the API returns the
         # latest 24 hours
-        latest_obs_time = pd.Timestamp(response_json["SiteRep"]["DV"]["dataDate"])
+        latest_obs_time = pd.Timestamp(response_content["SiteRep"]["DV"]["dataDate"])
 
         # now we get the data, which is provided for each station separately, and for
         # each of the days in which the previous 24h fall
-        ts_list = response_json["SiteRep"]["DV"]["Location"]
+        ts_list = response_content["SiteRep"]["DV"]["Location"]
 
         # ensure that we have a list even if there is only one location (in which case
         # the API returns a dict)

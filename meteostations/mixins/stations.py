@@ -23,8 +23,8 @@ class StationsEndpointMixin(ABC):
             The stations data for the given region.
 
         """
-        response_json = self._get_json_from_url(self._stations_endpoint)
-        return self._stations_df_from_json(response_json)
+        response_content = self._get_content_from_url(self._stations_endpoint)
+        return self._stations_df_from_content(response_content)
 
     def _get_stations_gdf(self) -> gpd.GeoDataFrame:
         """Get a GeoDataFrame featuring the stations data for the given region.

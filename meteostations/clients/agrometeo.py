@@ -7,7 +7,7 @@ import pandas as pd
 import pyproj
 
 from meteostations import settings
-from meteostations.clients.base import BaseClient, RegionType
+from meteostations.clients.base import BaseJSONClient, RegionType
 from meteostations.mixins import AllStationsEndpointMixin, VariablesEndpointMixin
 
 # API endpoints
@@ -101,7 +101,7 @@ SCALE = "none"
 MEASUREMENT = "avg"
 
 
-class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClient):
+class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseJSONClient):
     """Agrometeo client."""
 
     _stations_endpoint = STATIONS_ENDPOINT
@@ -141,11 +141,14 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
             sjoin_kws = settings.SJOIN_KWS.copy()
         self.SJOIN_KWS = sjoin_kws
 
-    def _stations_df_from_json(self, response_json: dict) -> pd.DataFrame:
-        return pd.DataFrame(response_json["data"]).set_index(self._stations_id_col)
+        # need to call super().__init__() to set the cache
+        super().__init__()
 
-    def _variables_df_from_json(self, response_json: dict) -> pd.DataFrame:
-        variables_df = pd.json_normalize(response_json["data"])
+    def _stations_df_from_content(self, response_content: dict) -> pd.DataFrame:
+        return pd.DataFrame(response_content["data"]).set_index(self._stations_id_col)
+
+    def _variables_df_from_content(self, response_content: dict) -> pd.DataFrame:
+        variables_df = pd.json_normalize(response_content["data"])
         # ACHTUNG: need to strip strings, at least in variables name column. Note
         # that *it seems* that the integer type of variable code column is inferred
         # correctly
@@ -212,6 +215,7 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
         #     stations_id_col = self._stations_id_col
 
         _stations_ids = self.stations_gdf.index.astype(str)
+        # TODO: use parameters instead of str formatting?
         request_url = f"{self._data_endpoint}?" + "&".join(
             [
                 f"from={start_date}",
@@ -227,10 +231,11 @@ class AgrometeoClient(AllStationsEndpointMixin, VariablesEndpointMixin, BaseClie
                 f"stations={'%2C'.join(_stations_ids)}",
             ]
         )
-        response_json = self._get_json_from_url(request_url)
+
+        response_content = self._get_content_from_url(request_url)
 
         # parse the response as a data frame
-        ts_df = pd.json_normalize(response_json["data"]).set_index(self._time_col)
+        ts_df = pd.json_normalize(response_content["data"]).set_index(self._time_col)
         ts_df.index = pd.to_datetime(ts_df.index)
         ts_df.index.name = settings.TIME_NAME
 

@@ -1,18 +1,20 @@
 """Base abstract classes for meteo station datasets."""
 
+import abc
 import datetime
+import io
 import logging as lg
 import os
 import re
 import time
-from abc import ABC
-from typing import IO, Mapping, Sequence, Tuple, Union
+from typing import IO, Mapping, Sequence, Union
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pyproj
 import requests
+import requests_cache
 from better_abc import abstract_attribute
 from fiona.errors import DriverError
 from shapely import geometry
@@ -26,7 +28,7 @@ except ImportError:
     ox = None
 
 
-__all__ = ["BaseClient", "RegionType", "DateTimeType"]
+__all__ = ["BaseJSONClient", "BaseTextClient", "RegionType", "DateTimeType"]
 
 
 # def _long_ts_df(ts_df, station_id_name, time_name, value_name):
@@ -44,7 +46,7 @@ DateTimeType = Union[
 ]
 
 
-class BaseClient(ABC):
+class BaseClient(abc.ABC):
     """Meteo station base client."""
 
     # def __init__(
@@ -64,6 +66,18 @@ class BaseClient(ABC):
     #     if time_name is None:
     #         time_name = settings.TIME_NAME
     #     self.time_name = time_name
+    def __init__(self, *args, **kwargs):
+        # if use_cache is None:
+        #     use_cache = settings.USE_CACHE
+        if settings.USE_CACHE:  # if use_cache:
+            session = requests_cache.CachedSession(
+                cache_name=settings.CACHE_NAME,
+                backend=settings.CACHE_BACKEND,
+                expire_after=settings.CACHE_EXPIRE,
+            )
+        else:
+            session = requests.Session()
+        self._session = session
 
     @abstract_attribute
     def X_COL(self):  # pylint: disable=invalid-name
@@ -123,7 +137,6 @@ class BaseClient(ABC):
             The processed region as a GeoDataFrame, in the CRS used by the client's
             class. A value of None is returned when passing a place name (Nominatim
             query) but osmnx is not installed.
-
         """
         # crs : Any, optional
         # Coordinate Reference System of the provided `region`. Ignored if `region` is a
@@ -212,17 +225,15 @@ class BaseClient(ABC):
         """Request parameters."""
         return {}
 
-    def _get_json_from_url(
+    def _get(
         self,
         url: str,
         *,
         params: Union[Mapping, None] = None,
         headers: Union[Mapping, None] = None,
         request_kws: Union[Mapping, None] = None,
-        pause: Union[int, None] = None,
-        error_pause: Union[int, None] = None,
-    ) -> dict:
-        """Get JSON response for the url (from the cache or from the API).
+    ) -> requests.Response:
+        """Get response for the url (from the cache or from the API).
 
         Parameters
         ----------
@@ -237,121 +248,73 @@ class BaseClient(ABC):
         request_kws : dict, optional
             Additional keyword arguments to pass to `requests.get`. If None, the value
             from `settings.REQUEST_KWS` will be used.
-        pause : int, optional
-            How long to pause before request, in seconds. If None, the value from
-            `settings.PAUSE` will be used.
-        error_pause : int, optional
-            How long to pause in seconds before re-trying request if error. If None, the
-            value from `settings.ERROR_PAUSE` will be used.
 
         Returns
         -------
-        response_json : dict
-            JSON-encoded response content.
-
+        response : requests.Response
+            Response object from the server.
         """
-        # use the Python requests library to prepare the url here so that the cache
-        # mechanism takes into account the params
-        # TODO: DRY together with `self._perform_request`
-        # - the `params` arg is processed here and in `self._perform_request`
-        # - the url is prepared here and in `self._perform_request`
-        _params = self.request_params.copy()
-        if params is not None:
-            _params.update(params)
-        prepared_url = requests.Request("GET", url, params=_params).prepare().url
-        cached_response_json = utils._retrieve_from_cache(prepared_url)
-
-        if cached_response_json is not None:
-            # found response in the cache, return it instead of calling server
-            return cached_response_json
-        else:
-            response_json, sc = self._perform_request(
-                url,
-                params=params,
-                headers=headers,
-                request_kws=request_kws,
-                pause=pause,
-                error_pause=error_pause,
-            )
-            utils._save_to_cache(prepared_url, response_json, sc)
-            return response_json
-
-    def _perform_request(
-        self,
-        url: str,
-        *,
-        params: Union[Mapping, None] = None,
-        headers: Union[Mapping, None] = None,
-        request_kws: Union[Mapping, None] = None,
-        pause: Union[int, None] = None,
-        error_pause: Union[int, None] = None,
-    ) -> Tuple[dict, int]:
-        """Send GET request to the API and return JSON response and status code.
-
-        Parameters
-        ----------
-        url : str
-            URL to request.
-        params : dict, optional
-            Parameters to pass to the request. They will be added to the default params
-            set in the `request_params` property.
-        headers : dict, optional
-            Headers to pass to the request. They will be added to the default headers
-            set in the `request_headers` property.
-        request_kws : dict, optional
-            Additional keyword arguments to pass to `requests.get`. If None, the value
-            from `settings.REQUEST_KWS` will be used.
-        pause : int, optional
-            How long to pause before request, in seconds. If None, the value from
-            `settings.PAUSE` will be used.
-        error_pause : int, optional
-            How long to pause in seconds before re-trying request if error. If None, the
-            value from `settings.ERROR_PAUSE` will be used.
-
-        Returns
-        -------
-        response_json : dict
-            JSON-encoded response content.
-        status_code : int
-            Status code of the response.
-
-        """
-        # if this URL is not already in the cache, pause, then request it
-        if pause is None:
-            pause = settings.PAUSE
-        utils.log(f"Pausing {pause} seconds before making HTTP GET request")
-        time.sleep(pause)
-
-        # transmit the HTTP GET request
-        utils.log(f"Get {url} with timeout={settings.TIMEOUT}")
-        # headers = _get_http_headers()
-
         _params = self.request_params.copy()
         _headers = self.request_headers.copy()
+        _request_kws = settings.REQUEST_KWS.copy()
         if params is not None:
             _params.update(params)
         if headers is not None:
             _headers.update(headers)
-        if request_kws is None:
-            request_kws = settings.REQUEST_KWS.copy()
-        response = requests.get(
-            url,
-            params=_params,
-            timeout=settings.TIMEOUT,
-            headers=_headers,
-            **request_kws,
+        if request_kws is not None:
+            _request_kws.update(request_kws)
+
+        return self._session.get(url, params=_params, headers=_headers, **_request_kws)
+
+    @abc.abstractmethod
+    def _get_content_from_response(self, response: requests.Response):
+        pass
+
+    def _get_content_from_url(
+        self,
+        url: str,
+        params: Union[Mapping, None] = None,
+        headers: Union[Mapping, None] = None,
+        request_kws: Union[Mapping, None] = None,
+        pause: Union[int, None] = None,
+        error_pause: Union[int, None] = None,
+    ):
+        """Get the response content from a given URL.
+
+        Parameters
+        ----------
+        url : str
+            URL to request.
+        params : dict, optional
+            Parameters to pass to the request. They will be added to the default params
+            set in the `request_params` property.
+        headers : dict, optional
+            Headers to pass to the request. They will be added to the default headers
+            set in the `request_headers` property.
+        request_kws : dict, optional
+            Additional keyword arguments to pass to `requests.get`. If None, the value
+            from `settings.REQUEST_KWS` will be used.
+        pause : int, optional
+            How long to pause before request, in seconds. If None, the value from
+            `settings.PAUSE` will be used.
+        error_pause : int, optional
+            How long to pause in seconds before re-trying request if error. If None, the
+            value from `settings.ERROR_PAUSE` will be used.
+
+        Returns
+        -------
+        response_content
+            Response content.
+        """
+        # print(requests.Request("get", url, params=params).prepare().url)
+        response = self._get(
+            url, params=params, headers=headers, request_kws=request_kws
         )
         sc = response.status_code
-
-        # log the response size and domain
-        size_kb = len(response.content) / 1000
-        domain = re.findall(r"(?s)//(.*?)/", url)[0]
-        utils.log(f"Downloaded {size_kb:,.1f}kB from {domain}")
-
         try:
-            response_json = response.json()
-
+            response_content = self._get_content_from_response(response)
         except Exception:  # pragma: no cover
+            domain = re.findall(r"(?s)//(.*?)/", url)[0]
             if sc in {429, 504}:
                 # 429 is 'too many requests' and 504 is 'gateway timeout' from
                 # server overload: handle these by pausing then recursively
@@ -363,7 +326,7 @@ class BaseClient(ABC):
                     level=lg.WARNING,
                 )
                 time.sleep(error_pause)
-                response_json = self._perform_request(
+                response_content = self._get_content_from_url(
                     url,
                     params=params,
                     headers=headers,
@@ -371,7 +334,6 @@ class BaseClient(ABC):
                     pause=pause,
                     error_pause=error_pause,
                 )
-
             else:
                 # else, this was an unhandled status code, throw an exception
                 utils.log(f"{domain} returned {sc}", level=lg.ERROR)
@@ -380,4 +342,21 @@ class BaseClient(ABC):
                     f"{response} {response.reason}\n{response.text}"
                 )
 
-        return response_json, sc
+        return response_content
+
+
+class BaseJSONClient(BaseClient):
+    """Base class for JSON clients."""
+
+    def _get_content_from_response(self, response: requests.Response) -> dict:
+        return response.json()
+
+
+class BaseTextClient(BaseClient):
+    """Base class for text clients."""
+
+    def _get_content_from_response(
+        self,
+        response: requests.Response,
+    ) -> io.StringIO:
+        return io.StringIO(response.content.decode(response.encoding))

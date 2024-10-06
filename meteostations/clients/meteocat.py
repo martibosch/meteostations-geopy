@@ -7,7 +7,7 @@ import pandas as pd
 import pyproj
 
 from meteostations import settings
-from meteostations.clients.base import BaseClient, RegionType
+from meteostations.clients.base import BaseJSONClient, RegionType
 from meteostations.mixins import (
     AllStationsEndpointMixin,
     APIKeyHeaderMixin,
@@ -40,7 +40,7 @@ class MeteocatClient(
     APIKeyHeaderMixin,
     AllStationsEndpointMixin,
     VariablesEndpointMixin,
-    BaseClient,
+    BaseJSONClient,
 ):
     """Meteocat client."""
 
@@ -66,11 +66,14 @@ class MeteocatClient(
             sjoin_kws = settings.SJOIN_KWS.copy()
         self.SJOIN_KWS = sjoin_kws
 
-    def _stations_df_from_json(self, response_json: dict) -> pd.DataFrame:
-        return pd.json_normalize(response_json)
+        # need to call super().__init__() to set the cache
+        super().__init__()
 
-    def _variables_df_from_json(self, response_json: dict) -> pd.DataFrame:
-        return pd.json_normalize(response_json)
+    def _stations_df_from_content(self, response_content: dict) -> pd.DataFrame:
+        return pd.json_normalize(response_content)
+
+    def _variables_df_from_content(self, response_content: dict) -> pd.DataFrame:
+        return pd.json_normalize(response_content)
 
     def _get_ts_df(
         self,
@@ -106,9 +109,9 @@ class MeteocatClient(
             f"{self._data_endpoint}"
             f"/{variable_code}/{date.year}/{date.month:02}/{date.day:02}"
         )
-        response_json = self._get_json_from_url(request_url)
+        response_content = self._get_content_from_url(request_url)
         # process response
-        response_df = pd.json_normalize(response_json)
+        response_df = pd.json_normalize(response_content)
         # filter stations
         response_df = response_df[
             response_df["codi"].isin(self.stations_gdf[self._stations_id_col])

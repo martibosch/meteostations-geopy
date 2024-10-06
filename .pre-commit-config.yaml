@@ -66,7 +66,10 @@ repos:
         args: ["--keep-output"]
 
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.8.7
+    rev: 1.9.0
     hooks:
-      - id: nbqa-black
-      - id: nbqa-ruff
+      - id: nbqa-ruff-check
+        args: ["--fix", "--ignore=D,I"]
+      - id: nbqa-ruff-format
+      - id: nbqa-ruff-check
+        args: ["--ignore=D,I"]

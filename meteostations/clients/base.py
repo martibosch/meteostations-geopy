@@ -1,5 +1,6 @@
 """Base abstract classes for meteo station datasets."""
 
+import datetime
 import logging as lg
 import os
 import re
@@ -8,6 +9,8 @@ from abc import ABC
 from typing import IO, Mapping, Sequence, Tuple, Union
 
 import geopandas as gpd
+import numpy as np
+import pandas as pd
 import requests
 from better_abc import abstract_attribute
 from fiona.errors import DriverError
@@ -22,7 +25,7 @@ except ImportError:
     ox = None
 
 
-__all__ = ["BaseClient", "RegionType"]
+__all__ = ["BaseClient", "RegionType", "DateTimeType"]
 
 
 # def _long_ts_df(ts_df, station_id_name, time_name, value_name):
@@ -35,6 +38,9 @@ __all__ = ["BaseClient", "RegionType"]
 #     )
 
 RegionType = Union[str, Sequence, gpd.GeoSeries, gpd.GeoDataFrame, os.PathLike, IO]
+DateTimeType = Union[
+    datetime.date, datetime.datetime, np.datetime64, pd.Timestamp, str, int, float
+]
 
 
 class BaseClient(ABC):
@@ -116,6 +122,7 @@ class BaseClient(ABC):
             The processed region as a GeoDataFrame, in the CRS used by the client's
             class. A value of None is returned when passing a place name (Nominatim
             query) but osmnx is not installed.
+
         """
         # crs : Any, optional
         # Coordinate Reference System of the provided `region`. Ignored if `region` is a

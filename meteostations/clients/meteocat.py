@@ -1,4 +1,4 @@
-"""MetOffice client."""
+"""Meteocat client."""
 
 import datetime
 from typing import Mapping, Union
@@ -197,6 +197,7 @@ class MeteocatClient(
         ts_gdf : gpd.GeoDataFrame
             Geo-data frame with a time series of meaurements (columns) at each station
             (rows), with an additional geometry column with the stations' locations.
+
         """
         ts_gdf = gpd.GeoDataFrame(
             self.get_ts_df(

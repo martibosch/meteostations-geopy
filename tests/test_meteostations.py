@@ -14,6 +14,8 @@ from meteostations import settings, utils
 from meteostations.clients import (
     AemetClient,
     AgrometeoClient,
+    ASOSOneMinIEMClient,
+    METARASOSIEMClient,
     MeteocatClient,
     MetOfficeClient,
 )
@@ -173,6 +175,24 @@ class AgrometeoClientTest(BaseClientTest, unittest.TestCase):
     start_date = "2022-03-22"
     end_date = "2022-03-23"
     ts_df_args = [start_date, end_date]
+
+
+@unittest.skip("Prevent testing abstract IEM Client")
+class IEMBaseClientTest(BaseClientTest, unittest.TestCase):
+    region = "Vermont"
+    start_date = "2022-03-22"
+    end_date = "2022-03-23"
+    ts_df_args = [start_date, end_date]
+
+
+class ASOSOneMinIEMClientTest(IEMBaseClientTest):
+    client_cls = ASOSOneMinIEMClient
+    variable_codes = ["tmpf", "pres1"]
+
+
+class METARASOSSIEMClientTest(IEMBaseClientTest):
+    client_cls = METARASOSIEMClient
+    variable_codes = ["tmpf", "mslp"]
 
 
 class MeteocatClientTest(APIKeyHeaderClientTest, unittest.TestCase):

@@ -13,7 +13,7 @@ release = __version__
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "myst_parser", "nbsphinx"]
 
 autodoc_typehints = "description"
-html_theme = "default"
+html_theme = "pydata_sphinx_theme"
 
 # https://myst-parser.readthedocs.io/en/stable/syntax/optional.html#auto-generated-header-anchors
 myst_heading_anchors = 3

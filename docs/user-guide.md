@@ -1,6 +1,6 @@
 # User guide
 
-Meteostations-geopy provides a set of provider-specific clients to get observations from meteorological stations. The list of supported providers is available at the [API](https://meteostations-geopy.readthedocs.io/en/latest/api.html) page.
+Meteostations-geopy provides a set of provider-specific clients to get observations from meteorological stations. The list of supported providers is available at the [API reference page](https://meteostations-geopy.readthedocs.io/en/latest/api.html#available-clients).
 
 ## Example notebooks
 
